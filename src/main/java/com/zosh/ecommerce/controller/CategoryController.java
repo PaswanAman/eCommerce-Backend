@@ -1,0 +1,78 @@
+package com.zosh.ecommerce.controller;
+
+import com.zosh.ecommerce.Dto.CategoryDto;
+import com.zosh.ecommerce.Dto.ProductDto;
+import com.zosh.ecommerce.entities.Category;
+import com.zosh.ecommerce.entities.Product;
+import com.zosh.ecommerce.exception.ResourceNotFoundException;
+import com.zosh.ecommerce.service.CategoryService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/v1/user")
+public class CategoryController {
+    @Autowired
+    private CategoryService categoryService;
+
+    private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);
+
+    @PostMapping("/admin/create-category")
+    public ResponseEntity<?> createCategory(@RequestBody CategoryDto categoryDto) {
+        try{
+
+            logger.info("Creating Category ");
+            logger.info("Category DTO: {}", categoryDto);
+            System.out.println("success");
+            CategoryDto createCategory = this.categoryService.createCategory(categoryDto);
+            logger.info("Category created successfully");
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status","success","message","Category created successfully"));
+        } catch (Exception e) {
+            logger.error("Failed to create category");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("status","error","message","Failed to create category"));
+        }
+    }
+
+    @GetMapping("/admin/{id}")
+    public ResponseEntity<?> getCategoryById(@PathVariable Long id){
+        logger.info("Get Category By CategoryId API called");
+        try{
+            CategoryDto categoryDto = this.categoryService.getCategoryById(id);
+            if (categoryDto == null){
+                logger.info("Category Not Found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status","error","message","Category not found"));
+            }
+            logger.info("Category Found");
+            return ResponseEntity.ok().body(Map.of("status","success","Category",categoryDto));
+        } catch (ResourceNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "error", "message", e.getMessage()));
+        }
+
+    }
+
+    @GetMapping("/admin/allcategories")
+    public ResponseEntity<?> getAllCategories(){
+        List<CategoryDto> categories = categoryService.getAllCategories();
+        return ResponseEntity.ok(categories);
+
+    }
+
+    @DeleteMapping("/admin/delete-category/{id}")
+    public ResponseEntity<?> deleteCategoryById(@PathVariable Long id){
+        try {
+            this.categoryService.deleteCategoryById(id);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status", "success", "message","category deleted"));
+        } catch (ResourceNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "error", "message", "category not found"));
+
+        }
+
+    }
+}
