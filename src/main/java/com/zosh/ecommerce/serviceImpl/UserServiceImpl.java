@@ -56,6 +56,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto registerNewBuyer(UserDto userDto){
         User user = this.modelMapper.map(userDto, User.class);
+        String firstname = user.setFirstName(userDto.getFirstName());
+        String lastname = user.setLastName(userDto.getLastName());
+        user.setFullName(firstname + " " + lastname);
+
         user.setPassword(this.passwordEncoder.encode(user.getPassword()));
 
         Role role = this.roleRepo.findById(AppConstants.ROLE_BUYER).get();
@@ -64,6 +68,13 @@ public class UserServiceImpl implements UserService {
         user.setCreatedDate(LocalDateTime.now());
         if (userDto.getPicture() != null){
             user.setPicture(userDto.getPicture());
+        }
+
+        if (user.getPicture()!=null){
+            String baseUrl = baseurl+"/api/v1/auth/picture/";
+            userDto.setPictureUrl(baseUrl + user.getPicture());
+        } else {
+            user.setPicture("");
         }
 
         Cart cart = new Cart();
@@ -92,6 +103,13 @@ public class UserServiceImpl implements UserService {
 
         if (sellerDto.getPicture() != null){
             user.setPicture(sellerDto.getPicture());
+        }
+
+        if (user.getPicture()!=null){
+            String baseUrl = baseurl+"/api/v1/auth/picture/";
+            sellerDto.setPictureUrl(baseUrl + user.getPicture());
+        } else {
+            user.setPicture("");
         }
 
         User newBuyer = this.userRepository.save(user);

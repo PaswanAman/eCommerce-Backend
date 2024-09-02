@@ -22,7 +22,7 @@ public class SellerDto {
     private String pictureUrl;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     private LocalDateTime createdDate;
-//    private String categoryName;
+
 
 
     public String getFullName() {
