@@ -4,7 +4,9 @@ package com.zosh.ecommerce.controller;
 import com.zosh.ecommerce.Dto.*;
 import com.zosh.ecommerce.config.JwtTokenHelper;
 import com.zosh.ecommerce.config.MessageConstants;
+import com.zosh.ecommerce.entities.Admin;
 import com.zosh.ecommerce.entities.User;
+import com.zosh.ecommerce.repository.AdminRepo;
 import com.zosh.ecommerce.repository.UserRepo;
 import com.zosh.ecommerce.service.AdminService;
 import com.zosh.ecommerce.service.FileService;
@@ -18,6 +20,7 @@ import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
@@ -38,7 +41,10 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -62,16 +68,20 @@ public class AuthController {
     private UserService userService;
 
     @Autowired
-    private UserRepo userRepo;
-
-    @Autowired
     private ModelMapper modelMapper;
 
     @Autowired
     private AdminService adminService;
 
     @Autowired
+    private UserRepo userRepo;
+    @Autowired
+    private AdminRepo adminRepo;
+
+    @Autowired
     private FileService fileService;
+    @Value("${picture.base-url}")
+    private String baseurl;
 
     private Logger logger = LoggerFactory.getLogger(AuthController.class);
 
@@ -118,31 +128,41 @@ public class AuthController {
 
     @PostMapping("/admin/login")
     public ResponseEntity<?> adminLogin(@RequestBody JwtAuthRequest request){
-        logger.info("Login API called ");
-        try{
-            this.authenticate(request.getEmail(),request.getPassword());
-            logger.info("User Email and Password authenticated");
-        } catch(Exception e){
-            logger.info("Invalid Email or Password");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "status","failed",
-                    "message","Invalid MobileNumber or Password"
-            ));
-        }
-        UserDetails userDetails = this.adminUserDetailService.loadUserByUsername(request.getEmail());
-
-
-        String token = this.jwtTokenHelper.generateToken(request.getEmail(),"admin");
-
-        AdminDto adminDto = this.modelMapper.map(userDetails, AdminDto.class);
-
+        logger.info("Seller  Login API called ");
+        Optional<Admin> admin = adminRepo.findByEmail(request.getEmail());
         JwtResponse response = new JwtResponse();
-        response.setToken(token);
-        response.setMessage("Login Successful");
-        response.setUserId(adminDto.getId());
-        response.setEmail(adminDto.getEmail());
-        logger.info("Login Successful");
-        return ResponseEntity.ok(response);
+        if (admin.isPresent()){
+            Admin admin1 = admin.get();
+            System.out.println(admin1.getEmail());
+            try {
+                Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
+
+
+                if (authentication.isAuthenticated()){
+
+                    response.setToken(jwtTokenHelper.generateToken(admin.get().getEmail(), "admin"));
+                    response.setMessage("Login Successful");
+                    response.setFirstName(admin1.getFirstName());
+                    response.setLastName(admin1.getLastName());
+                    response.setEmail(admin1.getEmail());
+                    response.setUserId(admin1.getId());
+                    logger.info("Login Successful");
+                    return new ResponseEntity<>(response, HttpStatus.OK);
+                } else {
+                    logger.info("Invalid email or password");
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(Map.of("status", "error", "message","Invalid Email or Passowrd. Please try again."));
+                }
+            }  catch (AuthenticationException e) {
+                logger.info("Invalid email or Password!");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("status", "error", "message", "Invalid email or password. Please try again."));
+            }
+        } else {
+            logger.info("Admin not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("status", "error", "message", "Admin not found"));
+        }
 
     }
 
@@ -189,15 +209,17 @@ public class AuthController {
             String errorMessage = "Mobile number already exists";
             Map<String, String> response = new HashMap<>();
             logger.info("Mobile number already exists");
-            response.put("error", errorMessage);
+            response.put("status","error");
+            response.put("message", errorMessage);
             return ResponseEntity.badRequest().body(response);
         }
 
         if (userService.existByEmail(userDto.getEmail())){
-            String errorMessage = "Email is already exists";
+            String errorMessage = "Email  already exists";
             Map<String, String> response = new HashMap<>();
             logger.info("Email is already exists");
-            response.put("error", errorMessage);
+            response.put("status","error");
+            response.put("message", errorMessage);
             return ResponseEntity.badRequest().body(response);
         }
 
@@ -310,6 +332,11 @@ public class AuthController {
         if (user.isPresent()){
             User user1 = user.get();
             System.out.println(user1.getEmail());
+            if (!"ROLE_SELLER".equalsIgnoreCase(user1.getRole())) {
+                logger.info("User does not have seller role");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("status", "error", "message", "Only seller are allowed to log in."));
+            }
             try {
                 Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
 
@@ -322,6 +349,8 @@ public class AuthController {
                     response.setLastName(user1.getLastName());
                     response.setEmail(user1.getEmail());
                     response.setUserId(user1.getId());
+                    response.setRole(user1.getRole());
+                    response.setPictureUrl(baseurl+"/api/v1/auth/picture/"+user1.getPicture());
                     logger.info("Login Successful");
                     return new ResponseEntity<>(response, HttpStatus.OK);
                 } else {
@@ -370,29 +399,49 @@ public class AuthController {
 
     @PostMapping("/buyer/login")
     public ResponseEntity<?> buyerLogin(@RequestBody JwtAuthRequest request){
-        logger.info("Login API called ");
-        try{
-            this.authenticate(request.getEmail(),request.getPassword());
-            logger.info("User Email and Password authenticated");
-        } catch(Exception e){
-            logger.info("Invalid Email or Password");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "status","failed",
-                    "message","Invalid MobileNumber or Password"
-            ));
+        logger.info("Buyer  Login API called ");
+        Optional<User> user = userRepo.findByEmail(request.getEmail());
+        UserResponse response = new UserResponse();
+        if (user.isPresent()){
+            User user1 = user.get();
+            System.out.println(user1.getEmail());
+            System.out.println(user1.getRole());
+            if (!"ROLE_BUYER".equalsIgnoreCase(user1.getRole())) {
+                logger.info("User does not have buyer role");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("status", "error", "message", "Only buyers are allowed to log in."));
+            }
+            try {
+                Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
+
+
+                if (authentication.isAuthenticated()){
+
+                    response.setToken(jwtTokenHelper.generateToken(user.get().getEmail(), "buyer"));
+                    response.setMessage("Login Successful");
+                    response.setFirstName(user1.getFirstName());
+                    response.setLastName(user1.getLastName());
+                    response.setEmail(user1.getEmail());
+                    response.setUserId(user1.getId());
+                    response.setRole(user1.getRole());
+                    response.setPictureUrl(baseurl+"/api/v1/auth/picture/"+user1.getPicture());
+                    logger.info("Login Successful");
+                    return new ResponseEntity<>(response, HttpStatus.OK);
+                } else {
+                    logger.info("Invalid email or password");
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(Map.of("status", "error", "message","Invalid Email or Passowrd. Please try again."));
+                }
+            }  catch (AuthenticationException e) {
+                logger.info("Invalid email or Password!");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("status", "error", "message", "Invalid email or password. Please try again."));
+            }
+        } else {
+            logger.info("Buyer not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("status", "error", "message", "User not found"));
         }
-        UserDetails userDetails = this.userDetailsService.loadUserByUsername(request.getEmail());
-        String token = this.jwtTokenHelper.generateToken(request.getEmail(),"buyer");
-
-        UserDto userDto = this.modelMapper.map(userDetails, UserDto.class);
-
-        JwtResponse response = new JwtResponse();
-        response.setToken(token);
-        response.setMessage("Login Successful");
-        response.setUserId(userDto.getId());
-        response.setEmail(userDto.getEmail());
-        logger.info("Login Successful");
-         return ResponseEntity.ok(response);
 
     }
 

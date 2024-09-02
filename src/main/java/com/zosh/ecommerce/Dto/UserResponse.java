@@ -8,6 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
+
 public class UserResponse {
     private String token;
     private String email;
@@ -15,4 +16,7 @@ public class UserResponse {
     private Long userId;
     private String firstName;
     private String lastName;
+    private String pictureUrl;
+    private String role;
+
 }
