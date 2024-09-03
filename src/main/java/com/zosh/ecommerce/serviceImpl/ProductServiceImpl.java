@@ -18,6 +18,7 @@ import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,7 +26,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,6 +51,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private FileService fileService;
+
+    @Value("${picture.base-url}")
+    private String baseurl;
+
     private static final Logger logger = LoggerFactory.getLogger(ProductServiceImpl.class);
 
     @Override
@@ -67,23 +74,36 @@ public class ProductServiceImpl implements ProductService {
         product.setHistoryStatus(false);
         product.setHiddenPost(false);
 
+
         product.setImages(new ArrayList<>());
-        List<String> imageUrls = new ArrayList<>();
+
+        List<ProductImage> productImages = new ArrayList<>();
+        Map<String,String> imageUrls = new HashMap<>();
+
         for (MultipartFile image : images){
 
             if(!isImage(image)){
                 throw new IllegalArgumentException("Only image file are allowed");
             }
-            ProductImage image1 = new ProductImage();
-            image1.setProduct(product);
-             String imageUrl = fileService.savePicture(image);
-             image1.setImage(imageUrl);
-             product.getImages().add(image1);
+
+             String imageName = fileService.savePicture(image);
+             String imageUrl = baseurl+"/api/v1/auth/picture/"+imageName;
+             imageUrls.put("image", imageUrl);
+
+            ProductImage productImage = new ProductImage();
+            productImage.setProduct(product);
+             productImage.setImage(imageUrl);
+            productImages.add(productImage);
+
+
         }
+        product.setImages(productImages);
         try{
             Product addProduct = productRepo.save(product);
             ProductDto productDtoResponse = modelMapper.map(addProduct, ProductDto.class);
             productDtoResponse.setImageUrls(imageUrls);
+            System.out.println("Error creating productImage: " + imageUrls);
+
             return productDtoResponse;
         }catch (Exception e){
             System.out.println("Error creating productImage: " + e.getMessage());
@@ -122,6 +142,14 @@ public class ProductServiceImpl implements ProductService {
     public ProductDto getProductById(Long productId) {
         Product product = this.productRepo.findById(productId).orElseThrow(()-> new ResourceNotFoundException("Product", "Id", productId));
         ProductDto productDto = modelMapper.map(product, ProductDto.class);
+
+
+        Map<String, String> imageUrls = new HashMap<>();
+        for (ProductImage image : product.getImages()) {
+            imageUrls.put("image", image.getImage());
+        }
+        productDto.setImageUrls(imageUrls);
+
         return productDto;
     }
 

@@ -43,10 +43,10 @@ public class CartServiceImpl implements CartService {
     private ModelMapper modelMapper;
 
     @Override
-    public CartDto addProductToCart(Long cartId, Long productId, Integer productQuantity) {
-        Cart cart = cartRepo.findById(cartId).orElseThrow();
+    public CartDto addProductToCart(Long userId, Long productId, Integer productQuantity) {
+//
         Product product = productRepo.findById(productId).orElseThrow();
-
+        Cart cart = cartRepo.findByUserId(userId).orElseThrow();
         CartQuantity cartQuantity = new CartQuantity();
         cartQuantity.setCart(cart);
         cartQuantity.setProduct(product);

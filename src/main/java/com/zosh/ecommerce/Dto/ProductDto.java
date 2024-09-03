@@ -10,6 +10,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -31,7 +32,7 @@ public class ProductDto {
     private Boolean hiddenPost;
     private boolean sold;
     private String categoryName;
-    private List<String> ImageUrls;
+    private Map<String, String> imageUrls;
 
 //    public void setImageUrls(List<String> imageUrls) {
 //    }

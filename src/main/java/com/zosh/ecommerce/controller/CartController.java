@@ -18,10 +18,10 @@ public class CartController {
 
     private Logger logger = LoggerFactory.getLogger(CartController.class);
 
-    @PostMapping("/buyer/{cartId}/addProduct/{productId}/{quantity}")
-    public CartDto addProductToCart(@PathVariable Long cartId, @PathVariable Long productId, @PathVariable Integer quantity) {
+    @PostMapping("/buyer/addProduct/{userId}/{productId}/{quantity}")
+    public CartDto addProductToCart(@PathVariable Long userId, @PathVariable Long productId, @PathVariable Integer quantity) {
         logger.info("Add Product to Cart API called");
-        return cartService.addProductToCart(cartId, productId, quantity);
+        return cartService.addProductToCart(userId, productId, quantity);
     }
 
     @GetMapping("/{userId}")

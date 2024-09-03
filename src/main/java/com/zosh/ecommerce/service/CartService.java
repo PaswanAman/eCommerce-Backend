@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface CartService {
-     CartDto addProductToCart(Long cartId, Long productId, Integer totalQuantity);
+     CartDto addProductToCart(Long userId, Long productId, Integer totalQuantity);
      CartDto getCartByUserId(Long userId);
      CartDto removeProductFromCart(Long cartId, Long productId, Integer totalQuantity);
 

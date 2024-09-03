@@ -48,9 +48,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private FileService fileService;
 
-
     @Value("${picture.base-url}")
     private String baseurl;
+
 
 
     @Override
