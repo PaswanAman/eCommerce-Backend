@@ -97,8 +97,9 @@ public class ProductController {
     }
 
     @GetMapping("/non-expired")
-    public List<ProductDto> getAllNonExpiredProducts() {
-        return productService.getAllNonExpiredProducts();
+    public ResponseEntity<?> getAllNonExpiredProducts() {
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of("status", "success", "message","Product fetched Successfully","products",productService.getAllNonExpiredProducts()));
+
     }
 
 

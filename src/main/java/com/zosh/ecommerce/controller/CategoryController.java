@@ -33,7 +33,7 @@ public class CategoryController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status","success","message","Category created successfully","category", createdCategory));
     }
 
-    @GetMapping("/admin/{id}")
+    @GetMapping("/category/{id}")
     public ResponseEntity<?> getCategoryById(@PathVariable Long id){
         logger.info("Get Category By CategoryId API called");
         try{
