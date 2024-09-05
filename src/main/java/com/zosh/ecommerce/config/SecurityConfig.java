@@ -108,6 +108,7 @@ public class SecurityConfig extends WebMvcAutoConfiguration {
                         .requestMatchers("/api/v1/user/SingleUser").authenticated()
                         .requestMatchers("/api/v1/user/seller/**","/api/v1/auth/changePassword").hasAnyAuthority("ROLE_SELLER")
                         .requestMatchers("/api/v1/user/product/{productId}").authenticated()
+                                .requestMatchers("/api/v1/user/product/category/{categoryName}").authenticated()
                         .requestMatchers("/api/v1/user/cart/buyer/**","/api/v1/user/buyer/**","/api/v1/auth/changePassword").hasAnyAuthority("ROLE_BUYER")
                         .requestMatchers("/api/v1/user/cart/{userId}").authenticated()
                          )

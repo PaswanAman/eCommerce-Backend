@@ -90,8 +90,9 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
-    @GetMapping("/seller/product/{categoryName}")
+    @GetMapping("/product/category/{categoryName}")
     public ResponseEntity<?> getProductByCategoryName(@PathVariable String categoryName){
+        logger.info("Get product by category name api called");
         List<ProductDto> productDtos = productService.getProductsByCategoryName(categoryName);
         return ResponseEntity.ok(productDtos);
     }
