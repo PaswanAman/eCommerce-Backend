@@ -33,6 +33,7 @@ public class ProductDto {
     private boolean sold;
     private String categoryName;
     private Map<String, String> imageUrls;
+    private Long sellerId;
 
 //    public void setImageUrls(List<String> imageUrls) {
 //    }
