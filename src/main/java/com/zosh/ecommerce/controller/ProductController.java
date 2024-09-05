@@ -94,7 +94,7 @@ public class ProductController {
     public ResponseEntity<?> getProductByCategoryName(@PathVariable String categoryName){
         logger.info("Get product by category name api called");
         List<ProductDto> productDtos = productService.getProductsByCategoryName(categoryName);
-        return ResponseEntity.ok(productDtos);
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","Products Fetched Successfully","products", productDtos));
     }
 
     @GetMapping("/buyer/search")
