@@ -36,12 +36,13 @@ public class ProductController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
 
-    @PostMapping("/seller/create-products")
-    public ResponseEntity<?> createProduct(@Valid @ModelAttribute ProductDto productDto, @RequestParam("images") List<MultipartFile> images){
+    @PostMapping("/seller/{sellerId}/create-products")
+    public ResponseEntity<?> createProduct(@Valid @ModelAttribute ProductDto productDto,@PathVariable Long sellerId, @RequestParam("images") List<MultipartFile> images){
         try{
             logger.info("Product DTO: {}", productDto);
             logger.info("Product Image: {}", images);
-            ProductDto createProduct = this.productService.createProduct(productDto,images);
+            logger.info("Product sellerId: {}", sellerId);
+            ProductDto createProduct = this.productService.createProduct(productDto,images,sellerId);
             logger.info("Product created successfully");
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status","success","message","Product created successfully"));
         } catch (IllegalArgumentException e){
@@ -81,6 +82,12 @@ public class ProductController {
         } catch (ResourceNotFoundException e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "error", "message", e.getMessage()));
         }
+    }
+
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<List<ProductDto>> getProductsBySellerId(@PathVariable Long sellerId) {
+        List<ProductDto> products = productService.getProductsBySellerId(sellerId);
+        return ResponseEntity.ok(products);
     }
 
     @GetMapping("/seller/product/{categoryName}")

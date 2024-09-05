@@ -57,9 +57,18 @@ public class ProductServiceImpl implements ProductService {
     private static final Logger logger = LoggerFactory.getLogger(ProductServiceImpl.class);
 
     @Override
-    public ProductDto createProduct(ProductDto productDto, List<MultipartFile> images) throws IOException {
+    public ProductDto createProduct(ProductDto productDto, List<MultipartFile> images, Long sellerId) throws IOException {
+        // Retrieve the seller from the UserRepository by sellerId
+        User seller = userRepo.findById(sellerId)
+                .orElseThrow(() -> new IllegalArgumentException("Seller not found with ID: " + sellerId));
+
+        // Check if the user has the "SELLER" role
+        if (!"ROLE_SELLER".equals(seller.getRole())) {
+            throw new IllegalArgumentException("User is not a seller");
+        }
         Product product = this.modelMapper.map(productDto, Product.class);
         product.setSold(false);
+        product.setSeller(seller);
 
         Category category = categoryRepo.findByName(productDto.getCategoryName());
         product.setCategory(category);
@@ -141,6 +150,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductDto getProductById(Long productId) {
         Product product = this.productRepo.findById(productId).orElseThrow(()-> new ResourceNotFoundException("Product", "Id", productId));
         ProductDto productDto = modelMapper.map(product, ProductDto.class);
+        productDto.setSellerId(product.getSeller().getId());
 
 
         Map<String, String> imageUrls = new HashMap<>();
@@ -220,6 +230,18 @@ public class ProductServiceImpl implements ProductService {
         return products.stream()
                 .map(product -> modelMapper.map(product, ProductDto.class))
                 .collect(Collectors.toList());
+    }
+
+
+    @Override
+    public List<ProductDto> getProductsBySellerId(Long sellerId) {
+        // Ensure only sellers' products are fetched
+        List<Product> products = productRepo.findBySellerIdAndSellerRole(sellerId, "ROLE_SELLER");
+
+        // Convert List<Product> to List<ProductDto>
+        return products.stream()
+                .map(product -> modelMapper.map(product, ProductDto.class))
+                .toList();
     }
 
 

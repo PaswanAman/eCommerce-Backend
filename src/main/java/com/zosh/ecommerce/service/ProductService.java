@@ -10,7 +10,7 @@ import java.util.List;
 @Service
 public interface ProductService {
 
-    ProductDto createProduct (ProductDto productDto, List<MultipartFile> image) throws IOException;
+    ProductDto createProduct (ProductDto productDto, List<MultipartFile> image, Long sellerId) throws IOException;
     ProductDto updateProduct (ProductDto productDto, Long productId) throws IOException;
     ProductDto getProductById(Long productId);
     void updateExpiredProduct();
@@ -18,6 +18,7 @@ public interface ProductService {
     List<ProductDto> getAllNonExpiredProducts();
     List<ProductDto> getProductsByCategoryName(String categoryName);
     List<ProductDto> searchProductsByTitle(String keyword);
+    List<ProductDto> getProductsBySellerId(Long sellerId);
 
 
 

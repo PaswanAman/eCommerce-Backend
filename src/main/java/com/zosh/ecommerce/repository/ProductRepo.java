@@ -9,6 +9,7 @@ import java.util.List;
 
 @Repository
 public interface ProductRepo extends JpaRepository<Product, Long> {
+    List<Product> findBySellerIdAndSellerRole(Long sellerId, String role);
     List<Product> findByCategoryName(String categoryName);
     List<Product> findByTitleContainingIgnoreCase(String keyword);
     List<Product> findByExpirationDateLessThanEqualAndHistoryStatusFalse(LocalDateTime currentDate);

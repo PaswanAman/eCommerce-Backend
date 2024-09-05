@@ -33,6 +33,11 @@ public class Product {
     private Boolean hiddenPost;
     private boolean sold;
 
+    @ManyToOne
+    @JoinColumn(name = "seller_id",nullable = false)
+    private User seller;
+
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<CartQuantity> cartQuantity;
 
