@@ -92,6 +92,7 @@ public class SecurityConfig extends WebMvcAutoConfiguration {
                                         "/api/v1/auth/picture/**",
                                         "/api/v1/auth/admin/**",
                                         "/api/v1/user/non-expired",
+                                        "/api/v1/user/allcategories",
                                         "/api/v1/auth/seller/**",
                                         "/v2/api-docs",
                                         "/v3/api-docs",

@@ -18,8 +18,11 @@ public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(unique = true)
     private String name;
-    private String image;
+    private String imageName;
+    private String description;
+
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL,orphanRemoval = true)
     private Set<Product> products;

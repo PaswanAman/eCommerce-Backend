@@ -12,7 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -25,19 +27,10 @@ public class CategoryController {
     private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);
 
     @PostMapping("/admin/create-category")
-    public ResponseEntity<?> createCategory(@RequestBody CategoryDto categoryDto) {
-        try{
-
-            logger.info("Creating Category ");
-            logger.info("Category DTO: {}", categoryDto);
-            System.out.println("success");
-            CategoryDto createCategory = this.categoryService.createCategory(categoryDto);
-            logger.info("Category created successfully");
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status","success","message","Category created successfully"));
-        } catch (Exception e) {
-            logger.error("Failed to create category");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("status","error","message","Failed to create category"));
-        }
+    public ResponseEntity<?> createCategory(@ModelAttribute CategoryDto categoryDto,
+                                                      @RequestParam("imageFile") MultipartFile imageFile) throws IOException {
+        CategoryDto createdCategory = categoryService.createCategory(categoryDto, imageFile);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status","success","message","Category created successfully","category", createdCategory));
     }
 
     @GetMapping("/admin/{id}")
@@ -57,10 +50,10 @@ public class CategoryController {
 
     }
 
-    @GetMapping("/admin/allcategories")
+    @GetMapping("/allcategories")
     public ResponseEntity<?> getAllCategories(){
         List<CategoryDto> categories = categoryService.getAllCategories();
-        return ResponseEntity.ok(categories);
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","Category Fetched Successfully","categories", categories));
 
     }
 

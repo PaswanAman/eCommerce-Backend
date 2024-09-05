@@ -8,10 +8,7 @@ import com.zosh.ecommerce.entities.Product;
 import com.zosh.ecommerce.entities.ProductImage;
 import com.zosh.ecommerce.entities.User;
 import com.zosh.ecommerce.exception.ResourceNotFoundException;
-import com.zosh.ecommerce.repository.CategoryRepo;
-import com.zosh.ecommerce.repository.ProductImageRepo;
-import com.zosh.ecommerce.repository.ProductRepo;
-import com.zosh.ecommerce.repository.UserRepo;
+import com.zosh.ecommerce.repository.*;
 import com.zosh.ecommerce.service.FileService;
 import com.zosh.ecommerce.service.ProductService;
 import org.modelmapper.ModelMapper;
@@ -42,6 +39,8 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private CartRepo cartRepo;
 
     @Autowired
     private ProductImageRepo productImageRepo;
@@ -177,6 +176,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDto> getAllNonExpiredProducts() {
         LocalDateTime currentDate = LocalDateTime.now();
+
         // Fetch all products
         List<Product> allProducts = productRepo.findAll();
 
@@ -191,7 +191,18 @@ public class ProductServiceImpl implements ProductService {
                             product.getExpirationDate().isEqual(currentDate);
                 })
                 .filter(product -> !product.getHistoryStatus())
-                .map(product -> modelMapper.map(product, ProductDto.class))
+                .map(product -> {
+                    ProductDto productDto = modelMapper.map(product, ProductDto.class);
+
+                    // Create image URLs map
+                    Map<String, String> imageUrls = new HashMap<>();
+                    for (ProductImage image : product.getImages()) {
+                        imageUrls.put("image", image.getImage()); // Adjust key if needed
+                    }
+                    productDto.setImageUrls(imageUrls);
+
+                    return productDto;
+                })
                 .collect(Collectors.toList());
 
         return nonExpiredProducts;
@@ -210,4 +221,6 @@ public class ProductServiceImpl implements ProductService {
                 .map(product -> modelMapper.map(product, ProductDto.class))
                 .collect(Collectors.toList());
     }
+
+
 }
