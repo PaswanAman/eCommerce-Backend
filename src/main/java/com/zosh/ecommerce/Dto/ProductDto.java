@@ -32,7 +32,7 @@ public class ProductDto {
     private Boolean hiddenPost;
     private boolean sold;
     private String categoryName;
-    private Map<String, String> imageUrls;
+    private List<String> imageUrls;
     private Long sellerId;
 
 //    public void setImageUrls(List<String> imageUrls) {

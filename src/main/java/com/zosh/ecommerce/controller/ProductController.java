@@ -84,10 +84,10 @@ public class ProductController {
         }
     }
 
-    @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<List<ProductDto>> getProductsBySellerId(@PathVariable Long sellerId) {
+    @GetMapping("/seller/product/{sellerId}")
+    public ResponseEntity<?> getProductsBySellerId(@PathVariable Long sellerId) {
         List<ProductDto> products = productService.getProductsBySellerId(sellerId);
-        return ResponseEntity.ok(products);
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","Products fetched successfully","products",products));
     }
 
     @GetMapping("/product/category/{categoryName}")

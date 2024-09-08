@@ -107,6 +107,7 @@ public class SecurityConfig extends WebMvcAutoConfiguration {
                                         "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/v1/user/admin/**").hasAnyAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/v1/user/SingleUser").authenticated()
+                                .requestMatchers("/api/v1/user/seller/product/{sellerId}").authenticated()
                         .requestMatchers("/api/v1/user/seller/**","/api/v1/auth/changePassword").hasAnyAuthority("ROLE_SELLER")
                         .requestMatchers("/api/v1/user/product/{productId}").authenticated()
                                 .requestMatchers("/api/v1/user/product/category/{categoryName}").authenticated()

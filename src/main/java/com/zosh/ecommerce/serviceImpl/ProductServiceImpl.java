@@ -86,7 +86,7 @@ public class ProductServiceImpl implements ProductService {
         product.setImages(new ArrayList<>());
 
         List<ProductImage> productImages = new ArrayList<>();
-        Map<String,String> imageUrls = new HashMap<>();
+     List<String> imageUrls= new ArrayList<>();
 
         for (MultipartFile image : images){
 
@@ -96,7 +96,7 @@ public class ProductServiceImpl implements ProductService {
 
              String imageName = fileService.savePicture(image);
              String imageUrl = baseurl+"/api/v1/auth/picture/"+imageName;
-             imageUrls.put("image", imageUrl);
+             imageUrls.add(imageUrl);
 
             ProductImage productImage = new ProductImage();
             productImage.setProduct(product);
@@ -153,9 +153,10 @@ public class ProductServiceImpl implements ProductService {
         productDto.setSellerId(product.getSeller().getId());
 
 
-        Map<String, String> imageUrls = new HashMap<>();
+        List<String> imageUrls= new ArrayList<>();
         for (ProductImage image : product.getImages()) {
-            imageUrls.put("image", image.getImage());
+            System.out.println("hello");
+            imageUrls.add(image.getImage());
         }
         productDto.setImageUrls(imageUrls);
 
@@ -205,9 +206,9 @@ public class ProductServiceImpl implements ProductService {
                     ProductDto productDto = modelMapper.map(product, ProductDto.class);
 
                     // Create image URLs map
-                    Map<String, String> imageUrls = new HashMap<>();
+                    List<String> imageUrls= new ArrayList<>();
                     for (ProductImage image : product.getImages()) {
-                        imageUrls.put("image", image.getImage()); // Adjust key if needed
+                        imageUrls.add(image.getImage()); // Adjust key if needed
                     }
                     productDto.setImageUrls(imageUrls);
 
