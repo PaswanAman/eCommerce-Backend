@@ -44,7 +44,8 @@ public class ProductController {
             logger.info("Product sellerId: {}", sellerId);
             ProductDto createProduct = this.productService.createProduct(productDto,images,sellerId);
             logger.info("Product created successfully");
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status","success","message","Product created successfully"));
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status","success","message","Product created successfully",
+                    "product", createProduct));
         } catch (IllegalArgumentException e){
             logger.error("Image support only");
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("status","error", "message", e.getMessage()));

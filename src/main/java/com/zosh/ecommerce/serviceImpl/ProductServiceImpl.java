@@ -66,6 +66,12 @@ public class ProductServiceImpl implements ProductService {
         if (!"ROLE_SELLER".equals(seller.getRole())) {
             throw new IllegalArgumentException("User is not a seller");
         }
+
+        if (seller.getStore() == null) {
+            throw new IllegalArgumentException("Seller does not have a store. Access denied.");
+        }
+
+
         Product product = this.modelMapper.map(productDto, Product.class);
         product.setSold(false);
         product.setSeller(seller);
@@ -86,7 +92,7 @@ public class ProductServiceImpl implements ProductService {
         product.setImages(new ArrayList<>());
 
         List<ProductImage> productImages = new ArrayList<>();
-     List<String> imageUrls= new ArrayList<>();
+        List<String> imageUrls= new ArrayList<>();
 
         for (MultipartFile image : images){
 
@@ -100,7 +106,7 @@ public class ProductServiceImpl implements ProductService {
 
             ProductImage productImage = new ProductImage();
             productImage.setProduct(product);
-             productImage.setImage(imageUrl);
+             productImage.setImage(imageName);
             productImages.add(productImage);
 
 
@@ -124,7 +130,8 @@ public class ProductServiceImpl implements ProductService {
         String contentType = images.getContentType();
         return contentType != null && (contentType.equals("image/jpeg") ||
                 contentType.equals("image/png") ||
-                contentType.equals("image/gif"));
+                contentType.equals("image/gif") ||
+                contentType.equals("image/jpg"));
     }
 
     @Override
