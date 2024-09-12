@@ -215,7 +215,7 @@ public class ProductServiceImpl implements ProductService {
                     // Create image URLs map
                     List<String> imageUrls= new ArrayList<>();
                     for (ProductImage image : product.getImages()) {
-                        imageUrls.add(image.getImage()); // Adjust key if needed
+                        imageUrls.add( baseurl+"/api/v1/auth/picture/" +image.getImage()); // Adjust key if needed
                     }
                     productDto.setImageUrls(imageUrls);
 
@@ -229,7 +229,18 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDto> getProductsByCategoryName(String categoryName) {
         List<Product> products = productRepo.findByCategoryName(categoryName);
-        return products.stream().map(product -> modelMapper.map(product, ProductDto.class)).collect(Collectors.toList());
+        return products.stream().map(product -> {
+            ProductDto productDto = modelMapper.map(product, ProductDto.class);
+
+            // Create image URLs map
+            List<String> imageUrls= new ArrayList<>();
+            for (ProductImage image : product.getImages()) {
+                imageUrls.add( baseurl+"/api/v1/auth/picture/" +image.getImage()); // Adjust key if needed
+            }
+            productDto.setImageUrls(imageUrls);
+
+            return productDto;
+        }).collect(Collectors.toList());
     }
 
     @Override
