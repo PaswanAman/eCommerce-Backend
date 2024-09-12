@@ -20,8 +20,11 @@ public class Store {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "store_Id")
     private Long id;
-    @Column(name = "store_name", unique = true)
+    @Column(name = "store_name", unique = true,length = 255)
     private String storeName;
+   @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "store_images", joinColumns = @JoinColumn(name = "store_id"))
+    @Column(name = "image_name")
     private List<String> storeImages = new ArrayList<>();
     @Column(name = "store_panNumber", unique = true)
     private String panNumber;

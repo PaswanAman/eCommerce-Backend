@@ -10,4 +10,7 @@ import java.util.List;
 @Service
 public interface StoreService {
     StoreDto createStore(StoreDto storeDto, String userToken, List<MultipartFile> image) throws IOException;
+    StoreDto storeGetById(Long storeId);
+    List<StoreDto> getAllStores();
+    StoreDto getStoreBySellerId(Long sellerId);
 }

@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -83,6 +84,102 @@ public class StoreServiceImpl implements StoreService {
             throw e;
         }
     }
+
+
+    @Override
+    public StoreDto storeGetById(Long storeId) {
+        try {
+            Store store = storeRepo.findById(storeId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Store", "id", storeId));
+
+            store.getStoreImages().size();
+            StoreDto storeDto = modelMapper.map(store, StoreDto.class);
+
+            List<String> imageUrls = new ArrayList<>();
+            List<String> imageNames = store.getStoreImages();
+
+            for (String imageName : imageNames) {
+                String imageUrl = baseurl + "/api/v1/auth/picture/" + imageName;
+                imageUrls.add(imageUrl);
+            }
+            storeDto.setStoreImageUrls(imageUrls);
+            storeDto.setStoreImageName(imageNames);
+
+            return storeDto;
+        } catch (ResourceNotFoundException ex) {
+            // Log exception and rethrow it to be handled by the controller or global handler
+            throw new ResourceNotFoundException("Store", "id", storeId);
+        } catch (Exception ex) {
+            // Log any other exceptions
+            ex.printStackTrace();
+            throw new RuntimeException("An error occurred while fetching the store details.");
+        }
+
+    }
+
+    @Override
+    public List<StoreDto> getAllStores() {
+        try {
+            List<Store> stores = storeRepo.findAll();
+            List<StoreDto> storeDtos = new ArrayList<>();
+
+            for (Store store : stores) {
+                StoreDto storeDto = modelMapper.map(store, StoreDto.class);
+
+                List<String> imageUrls = new ArrayList<>();
+                List<String> imageNames = store.getStoreImages(); // Assuming it's a List<String>
+
+                // Check if imageNames is not null and not empty
+                if (imageNames != null && !imageNames.isEmpty()) {
+                    for (String imageName : imageNames) {
+                        String imageUrl = baseurl + "/api/v1/auth/picture/" + imageName;
+                        imageUrls.add(imageUrl);
+                    }
+                }
+
+                // Set image names and URLs in the DTO
+                storeDto.setStoreImageUrls(imageUrls);
+                storeDto.setStoreImageName(imageNames);
+
+                storeDtos.add(storeDto);
+            }
+
+            return storeDtos;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new RuntimeException("An error occurred while fetching all stores.");
+        }
+    }
+
+    @Override
+    public StoreDto getStoreBySellerId(Long sellerId) {
+        try {
+            User seller = userRepo.findById(sellerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Seller", "id", sellerId));
+
+            Store store = storeRepo.findBySeller(seller)
+                    .orElseThrow(() -> new ResourceNotFoundException("Store", "sellerId", sellerId));
+
+            StoreDto storeDto = modelMapper.map(store, StoreDto.class);
+            List<String> imageUrls = new ArrayList<>();
+
+            if (store.getStoreImages() != null) {
+                for (String imageName : store.getStoreImages()) {
+                    String imageUrl = baseurl + "/api/v1/auth/picture/" + imageName;
+                    imageUrls.add(imageUrl);
+                }
+            }
+
+            storeDto.setStoreImageUrls(imageUrls);
+            storeDto.setStoreImageName(store.getStoreImages());
+            return storeDto;
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new RuntimeException("An error occurred while fetching the store by seller ID.");
+        }
+    }
+
 
     private boolean isImage(MultipartFile images) {
         String contentType = images.getContentType();

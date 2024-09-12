@@ -95,6 +95,7 @@ public class SecurityConfig extends WebMvcAutoConfiguration {
                                         "/api/v1/user/allcategories",
                                         "/api/v1/auth/seller/**",
                                         "/api/v1/user/category/**",
+
                                         "/v2/api-docs",
                                         "/v3/api-docs",
                                         "/v3/api-docs/**",
@@ -106,10 +107,10 @@ public class SecurityConfig extends WebMvcAutoConfiguration {
                                         "/webjars/**",
                                         "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/v1/user/admin/**").hasAnyAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/v1/user/SingleUser").authenticated()
+                        .requestMatchers("/api/v1/user/SingleUser","/api/v1/store/**","/api/v1/rating/**").authenticated()
                                 .requestMatchers("/api/v1/user/seller/product/{sellerId}").authenticated()
-                        .requestMatchers("/api/v1/user/seller/**","/api/v1/auth/changePassword","/api/v1/store/create").hasAnyAuthority("ROLE_SELLER")
-                        .requestMatchers("/api/v1/user/product/{productId}").authenticated()
+                        .requestMatchers("/api/v1/user/seller/**","/api/v1/auth/changePassword","/api/v1/create").hasAnyAuthority("ROLE_SELLER")
+                        .requestMatchers("/api/v1/user/product/{productId}","/api/v1/comment/**").authenticated()
                                 .requestMatchers("/api/v1/user/product/category/{categoryName}").authenticated()
                         .requestMatchers("/api/v1/user/cart/buyer/**","/api/v1/user/buyer/**","/api/v1/auth/changePassword").hasAnyAuthority("ROLE_BUYER")
                         .requestMatchers("/api/v1/user/cart/{userId}").authenticated()

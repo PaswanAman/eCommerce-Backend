@@ -1,6 +1,7 @@
 package com.zosh.ecommerce.controller;
 
 import com.zosh.ecommerce.Dto.StoreDto;
+import com.zosh.ecommerce.exception.ResourceNotFoundException;
 import com.zosh.ecommerce.exception.StoreCreationException;
 import com.zosh.ecommerce.service.StoreService;
 import org.slf4j.Logger;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/store")
+@RequestMapping("/api/v1")
 public class StoreController {
     @Autowired
     private StoreService storeService;
@@ -42,5 +43,45 @@ public class StoreController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("status", "error", "message", "Failed to create store"));
         }
 
+    }
+
+    @GetMapping("/store/{storeId}")
+    public ResponseEntity<?> getStoreById(@PathVariable Long storeId) {
+        logger.info("get store by id api called");
+        try {
+            StoreDto storeDto = storeService.storeGetById(storeId);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status", "success","message",storeDto));
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Error: " + ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred: " + ex.getMessage());
+        }
+    }
+
+    @GetMapping("/store/all")
+    public ResponseEntity<?> getAllStores() {
+        try {
+            List<StoreDto> storeDtos = storeService.getAllStores();
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message",storeDtos));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred: " + ex.getMessage());
+        }
+    }
+
+    @GetMapping("/store/seller/{sellerId}")
+    public ResponseEntity<?> getStoreBySellerId(@PathVariable Long sellerId) {
+        try {
+            StoreDto storeDto = storeService.getStoreBySellerId(sellerId);
+            return ResponseEntity.ok(storeDto);
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Error: " + ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred: " + ex.getMessage());
+        }
     }
 }
