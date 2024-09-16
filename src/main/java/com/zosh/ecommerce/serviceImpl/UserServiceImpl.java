@@ -237,15 +237,6 @@ public class UserServiceImpl implements UserService {
         return passwordEncoder.matches(oldPassword, user.getPassword());
     }
 
-    public void verifyOtp(String otpCode, Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
-        if (otpService.verifyOtp(otpCode, user)) {
-            user.setVerified(true);  // Mark user as verified
-            user.setEnabled(true);   // Enable the user account
-            userRepository.save(user);
-        } else {
-            throw new IllegalArgumentException("Invalid or expired OTP");
-        }
-    }
+
 
 }

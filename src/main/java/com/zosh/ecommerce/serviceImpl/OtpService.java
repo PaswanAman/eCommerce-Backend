@@ -2,7 +2,10 @@ package com.zosh.ecommerce.serviceImpl;
 
 import com.zosh.ecommerce.entities.Otp;
 import com.zosh.ecommerce.entities.User;
+import com.zosh.ecommerce.exception.OtpNotFoundException;
+import com.zosh.ecommerce.exception.UserNotFoundException;
 import com.zosh.ecommerce.repository.OtpRepo;
+import com.zosh.ecommerce.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +18,9 @@ public class OtpService {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private UserRepo userRepo;
 
     public String generateOtp(User user) {
         String otpCode = String.valueOf((int) ((Math.random() * (999999 - 100000)) + 100000));
@@ -31,9 +37,25 @@ public class OtpService {
         return otpCode;
     }
 
-    public boolean verifyOtp(String otpCode, User user) {
-        return otpRepository.findByOtpCodeAndUser(otpCode, user)
-                .filter(otp -> otp.getExpirationTime().isAfter(LocalDateTime.now()))
-                .isPresent();
+    public void verifyOtp(String otpCode) {
+        Otp otp = otpRepository.findByOtpCode(otpCode)
+                .orElseThrow(() -> new OtpNotFoundException("OTP not found or expired"));
+
+        if (otp.getExpirationTime().isBefore(LocalDateTime.now())) {
+            throw new OtpNotFoundException("OTP has expired");
+        }
+
+        // Fetch user directly from the OTP entity
+        User user = otp.getUser();
+        if (user == null) {
+            throw new UserNotFoundException("Associated user not found in OTP");
+        }
+
+        user.setIsOtpVerified(true);
+        userRepo.save(user);
+
+        otpRepository.delete(otp);
     }
+
+
 }

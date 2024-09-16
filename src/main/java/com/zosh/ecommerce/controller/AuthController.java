@@ -6,6 +6,8 @@ import com.zosh.ecommerce.config.JwtTokenHelper;
 import com.zosh.ecommerce.config.MessageConstants;
 import com.zosh.ecommerce.entities.Admin;
 import com.zosh.ecommerce.entities.User;
+import com.zosh.ecommerce.exception.OtpNotFoundException;
+import com.zosh.ecommerce.exception.UserNotFoundException;
 import com.zosh.ecommerce.repository.AdminRepo;
 import com.zosh.ecommerce.repository.UserRepo;
 import com.zosh.ecommerce.service.AdminService;
@@ -13,6 +15,7 @@ import com.zosh.ecommerce.service.FileService;
 import com.zosh.ecommerce.service.UserService;
 import com.zosh.ecommerce.serviceImpl.AdminUserDetailService;
 import com.zosh.ecommerce.serviceImpl.CustomUserDetailService;
+import com.zosh.ecommerce.serviceImpl.OtpService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import jakarta.validation.Valid;
@@ -72,6 +75,9 @@ public class AuthController {
 
     @Autowired
     private AdminService adminService;
+
+    @Autowired
+    private OtpService otpService;
 
     @Autowired
     private UserRepo userRepo;
@@ -246,11 +252,7 @@ public class AuthController {
 
     }
 
-    @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestParam String otpCode, @RequestParam Long userId) {
-        userService.verifyOtp(otpCode, userId);
-        return ResponseEntity.ok("OTP verified. Your account is now enabled.");
-    }
+
 
 
 
@@ -343,6 +345,8 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("status", "error", "message", "Only seller are allowed to log in."));
             }
+
+
             try {
                 Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
 
@@ -496,6 +500,23 @@ public class AuthController {
         logger.info("Password changed Successfully");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "success", "message","Password changed successfully"));
 
+    }
+
+    @PostMapping("/verifyOtp")
+    public ResponseEntity<?> verifyOtp(@RequestBody OtpVerificationRequest request) {
+        try {
+            otpService.verifyOtp(request.getOtpCode());
+            return ResponseEntity.ok().body("OTP verified successfully");
+        } catch (OtpNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("OTP not found or expired: " + e.getMessage());
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("User not found: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred: " + e.getMessage());
+        }
     }
 
     private void authenticate(String email, String password) {

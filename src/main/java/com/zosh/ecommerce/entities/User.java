@@ -41,8 +41,8 @@ public class User{
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     private LocalDateTime createdDate;
 
-    private boolean isVerified = false;  // Mark as true after OTP verification
-    private boolean isEnabled = false;
+    private boolean enabled;
+    private boolean OtpVerified;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Cart cart;
@@ -79,10 +79,22 @@ public class User{
         return lastName;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public boolean isOtpVerified() {
+        return OtpVerified;
+    }
 
 
 
 
-
-
+    public void setIsOtpVerified(boolean b) {
+        this.OtpVerified = b;
+    }
 }

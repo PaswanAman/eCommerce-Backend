@@ -13,6 +13,7 @@ public class UserUserDetail implements UserDetails {
     private String userName;
     private String password;
     private Set<Role> role;
+    private boolean enabled;
 
     public UserUserDetail(){
 
@@ -22,6 +23,7 @@ public class UserUserDetail implements UserDetails {
         userName = user.getEmail();
         password = user.getPassword();
         role = user.getRoles();
+        enabled = user.isEnabled();
     }
 
     @Override
@@ -43,4 +45,11 @@ public class UserUserDetail implements UserDetails {
     public String getUsername() {
         return userName;
     }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+
 }

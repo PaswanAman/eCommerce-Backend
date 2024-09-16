@@ -21,6 +21,6 @@ public interface UserService {
     boolean verifyChangePassword(String userToken, String oldPassword);
     public UserDto forgetPassword(UserDto userDto, String userToken);
     public boolean verifyForgetPassword(String userToken, String oldPassword);
-    void verifyOtp(String otpCode, Long userId);
+
 
 }
