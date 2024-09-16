@@ -55,7 +55,6 @@ public class UserServiceImpl implements UserService {
     private String baseurl;
 
 
-
     @Override
     public UserDto registerNewBuyer(UserDto userDto){
         User user = this.modelMapper.map(userDto, User.class);
@@ -69,8 +68,8 @@ public class UserServiceImpl implements UserService {
         user.setRole("ROLE_BUYER");
         user.setCreatedDate(LocalDateTime.now());
 
-        user.setEnabled(false);
-        otpService.generateOtp(user);
+//        user.setEnabled(false);
+//        otpService.generateOtp(user);
 
         if (userDto.getPicture() != null){
             user.setPicture(userDto.getPicture());
