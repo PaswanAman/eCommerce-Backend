@@ -131,6 +131,11 @@ public class ProductServiceImpl implements ProductService {
         return contentType != null && (contentType.equals("image/jpeg") ||
                 contentType.equals("image/png") ||
                 contentType.equals("image/gif") ||
+                contentType.equals("image/svg") ||
+                contentType.equals("image/pjp") ||
+                contentType.equals("image/pjpeg") ||
+                contentType.equals("image/jfif") ||
+                contentType.equals("image/webp") ||
                 contentType.equals("image/jpg"));
     }
 
