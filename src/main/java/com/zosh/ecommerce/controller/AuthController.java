@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@SecurityRequirement(name = "bearerAuth")
+
 public class AuthController {
 
     @Autowired

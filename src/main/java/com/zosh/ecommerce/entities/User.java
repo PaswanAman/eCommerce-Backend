@@ -41,7 +41,9 @@ public class User{
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     private LocalDateTime createdDate;
 
-    private boolean enabled;
+    @Column(nullable = false)
+    private boolean isEnabled = false;
+
     private boolean OtpVerified;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
@@ -57,8 +59,10 @@ public class User{
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-//    private Set<Otp> otps = new HashSet<>();
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Otp otp;
+
+
 
 
     public String setFirstName(String firstName) {
@@ -80,11 +84,11 @@ public class User{
     }
 
     public boolean isEnabled() {
-        return enabled;
+        return isEnabled;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    public void setEnabled(boolean isEnabled) {
+        this.isEnabled = isEnabled;
     }
 
     public boolean isOtpVerified() {

@@ -12,6 +12,7 @@ import com.zosh.ecommerce.repository.RoleRepo;
 import com.zosh.ecommerce.repository.UserRepo;
 import com.zosh.ecommerce.service.FileService;
 import com.zosh.ecommerce.service.UserService;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,6 +57,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    @Transactional
     public UserDto registerNewBuyer(UserDto userDto){
         User user = this.modelMapper.map(userDto, User.class);
         String firstname = user.setFirstName(userDto.getFirstName());
@@ -68,8 +70,7 @@ public class UserServiceImpl implements UserService {
         user.setRole("ROLE_BUYER");
         user.setCreatedDate(LocalDateTime.now());
 
-//        user.setEnabled(false);
-//        otpService.generateOtp(user);
+        user.setEnabled(false);
 
         if (userDto.getPicture() != null){
             user.setPicture(userDto.getPicture());
@@ -84,10 +85,12 @@ public class UserServiceImpl implements UserService {
 
 
         User newUser = this.userRepository.save(user);
+        otpService.generateOtp(newUser);
         return this.modelMapper.map(newUser, UserDto.class);
     }
 
     @Override
+    @Transactional
     public SellerDto registerNewSeller(SellerDto sellerDto){
         User user = this.modelMapper.map(sellerDto, User.class);
         String firstname = user.setFirstName(sellerDto.getFirstName());
@@ -99,6 +102,7 @@ public class UserServiceImpl implements UserService {
         Role role = this.roleRepo.findById(AppConstants.ROLE_SELLER).get();
         user.getRoles().add(role);
         user.setRole("ROLE_SELLER");
+        user.setEnabled(false);
 
         user.setCreatedDate(LocalDateTime.now());
 
@@ -109,6 +113,8 @@ public class UserServiceImpl implements UserService {
 
 
         User newBuyer = this.userRepository.save(user);
+        otpService.generateOtp(newBuyer);
+
         return this.modelMapper.map(newBuyer, SellerDto.class);
 
     }

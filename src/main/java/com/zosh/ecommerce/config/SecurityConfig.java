@@ -95,6 +95,7 @@ public class SecurityConfig extends WebMvcAutoConfiguration {
                                         "/api/v1/user/allcategories",
                                         "/api/v1/auth/seller/**",
                                         "/api/v1/user/category/**",
+                                        "/api/v1/auth/verifyOtp",
 
                                         "/v2/api-docs",
                                         "/v3/api-docs",
