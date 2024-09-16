@@ -41,6 +41,9 @@ public class User{
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     private LocalDateTime createdDate;
 
+    private boolean isVerified = false;  // Mark as true after OTP verification
+    private boolean isEnabled = false;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Cart cart;
 
@@ -53,6 +56,9 @@ public class User{
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
+
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+//    private Set<Otp> otps = new HashSet<>();
 
 
     public String setFirstName(String firstName) {

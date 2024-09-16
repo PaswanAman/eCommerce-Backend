@@ -48,6 +48,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private FileService fileService;
 
+    @Autowired
+    private OtpService otpService;
+
     @Value("${picture.base-url}")
     private String baseurl;
 
@@ -65,6 +68,10 @@ public class UserServiceImpl implements UserService {
         user.getRoles().add(role);
         user.setRole("ROLE_BUYER");
         user.setCreatedDate(LocalDateTime.now());
+
+        user.setEnabled(false);
+        otpService.generateOtp(user);
+
         if (userDto.getPicture() != null){
             user.setPicture(userDto.getPicture());
         }
@@ -75,6 +82,8 @@ public class UserServiceImpl implements UserService {
         cart.setTotalQuantity(0);
         cart.setTotalPrice(0.0);
         user.setCart(cart);
+
+
         User newUser = this.userRepository.save(user);
         return this.modelMapper.map(newUser, UserDto.class);
     }
@@ -226,6 +235,17 @@ public class UserServiceImpl implements UserService {
         String username = jwtTokenHelper.getUsernameFromToken(token);
         User user = userRepository.findByEmail(username).orElseThrow();
         return passwordEncoder.matches(oldPassword, user.getPassword());
+    }
+
+    public void verifyOtp(String otpCode, Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (otpService.verifyOtp(otpCode, user)) {
+            user.setVerified(true);  // Mark user as verified
+            user.setEnabled(true);   // Enable the user account
+            userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("Invalid or expired OTP");
+        }
     }
 
 }

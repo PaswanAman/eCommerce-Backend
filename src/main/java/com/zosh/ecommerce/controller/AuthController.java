@@ -246,6 +246,12 @@ public class AuthController {
 
     }
 
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestParam String otpCode, @RequestParam Long userId) {
+        userService.verifyOtp(otpCode, userId);
+        return ResponseEntity.ok("OTP verified. Your account is now enabled.");
+    }
+
 
 
     // For Seller
