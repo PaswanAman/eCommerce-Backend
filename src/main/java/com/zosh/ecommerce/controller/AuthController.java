@@ -506,13 +506,13 @@ public class AuthController {
     public ResponseEntity<?> verifyOtp(@RequestBody OtpVerificationRequest request) {
         try {
             otpService.verifyOtp(request.getOtpCode());
-            return ResponseEntity.ok().body("OTP verified successfully");
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","Otp verify successfully"));
         } catch (OtpNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("OTP not found or expired: " + e.getMessage());
+                    .body(Map.of("status","error","message","OTP not found or expired: " + e.getMessage()));
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("User not found: " + e.getMessage());
+                    .body(Map.of("status","error","message","User not found: " + e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred: " + e.getMessage());
