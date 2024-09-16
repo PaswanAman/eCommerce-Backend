@@ -96,9 +96,10 @@ public class ProductServiceImpl implements ProductService {
 
         for (MultipartFile image : images){
 
-            if(!isImage(image)){
-                throw new IllegalArgumentException("Only image file are allowed");
-            }
+//            if(!isImage(image)){
+//                throw new IllegalArgumentException("Only image file are allowed");
+//            }
+
 
              String imageName = fileService.savePicture(image);
              String imageUrl = baseurl+"/api/v1/auth/picture/"+imageName;
@@ -131,6 +132,11 @@ public class ProductServiceImpl implements ProductService {
         return contentType != null && (contentType.equals("image/jpeg") ||
                 contentType.equals("image/png") ||
                 contentType.equals("image/gif") ||
+                contentType.equals("image/svg") ||
+                contentType.equals("image/pjp") ||
+                contentType.equals("image/pjpeg") ||
+                contentType.equals("image/jfif") ||
+                contentType.equals("image/webp") ||
                 contentType.equals("image/jpg"));
     }
 
