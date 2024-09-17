@@ -3,10 +3,7 @@ package com.zosh.ecommerce.serviceImpl;
 import com.zosh.ecommerce.Dto.ProductDto;
 import com.zosh.ecommerce.Dto.StoreDto;
 import com.zosh.ecommerce.config.JwtTokenHelper;
-import com.zosh.ecommerce.entities.Product;
-import com.zosh.ecommerce.entities.ProductImage;
-import com.zosh.ecommerce.entities.Store;
-import com.zosh.ecommerce.entities.User;
+import com.zosh.ecommerce.entities.*;
 import com.zosh.ecommerce.exception.InvalidImageException;
 import com.zosh.ecommerce.exception.ResourceNotFoundException;
 import com.zosh.ecommerce.exception.StoreCreationException;
@@ -21,10 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class StoreServiceImpl implements StoreService {
@@ -179,6 +173,15 @@ public class StoreServiceImpl implements StoreService {
             throw new RuntimeException("An error occurred while fetching the store by seller ID.");
         }
     }
+
+    @Override
+    public void deleteStore(Long storeId) {
+
+            Store store = storeRepo.findById(storeId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Store", "id", storeId));
+            storeRepo.delete(store);
+
+        }
 
 
     private boolean isImage(MultipartFile images) {

@@ -84,4 +84,15 @@ public class StoreController {
                     .body("An error occurred: " + ex.getMessage());
         }
     }
+
+    @DeleteMapping("/store/seller/{id}")
+    public ResponseEntity<?> deleteCategoryById(@PathVariable Long id){
+        try {
+            this.storeService.deleteStore(id);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status", "success", "message","category deleted"));
+        } catch (ResourceNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "error", "message", "category not found"));
+        }
+
+    }
 }
