@@ -56,9 +56,9 @@ public class StoreServiceImpl implements StoreService {
         List<String> imageNames = new ArrayList<>();
         for (MultipartFile image : images){
 
-            if(!isImage(image)){
-                throw new IllegalArgumentException("Only image file are allowed");
-            }
+//            if(!isImage(image)){
+//                throw new IllegalArgumentException("Only image file are allowed");
+//            }
 
             String imageName = fileService.savePicture(image);
             String imageUrl = baseurl+"/api/v1/auth/picture/"+imageName;
