@@ -18,5 +18,6 @@ public class UserResponse {
     private String lastName;
     private String pictureUrl;
     private String role;
+    private Long storeId;
 
 }

@@ -5,10 +5,12 @@ import com.zosh.ecommerce.Dto.*;
 import com.zosh.ecommerce.config.JwtTokenHelper;
 import com.zosh.ecommerce.config.MessageConstants;
 import com.zosh.ecommerce.entities.Admin;
+import com.zosh.ecommerce.entities.Store;
 import com.zosh.ecommerce.entities.User;
 import com.zosh.ecommerce.exception.OtpNotFoundException;
 import com.zosh.ecommerce.exception.UserNotFoundException;
 import com.zosh.ecommerce.repository.AdminRepo;
+import com.zosh.ecommerce.repository.StoreRepo;
 import com.zosh.ecommerce.repository.UserRepo;
 import com.zosh.ecommerce.service.AdminService;
 import com.zosh.ecommerce.service.FileService;
@@ -83,6 +85,8 @@ public class AuthController {
     private UserRepo userRepo;
     @Autowired
     private AdminRepo adminRepo;
+    @Autowired
+    private StoreRepo storeRepo;
 
     @Autowired
     private FileService fileService;
@@ -361,6 +365,13 @@ public class AuthController {
                     response.setUserId(user1.getId());
                     response.setRole(user1.getRole());
                     response.setPictureUrl(baseurl+"/api/v1/auth/picture/"+user1.getPicture());
+
+                    Optional<Store> store = storeRepo.findBySeller(user1);
+                    if (store.isPresent()){
+                        response.setStoreId(store.get().getId());
+                    } else {
+                        response.setStoreId(null);
+                    }
                     logger.info("Login Successful");
                     return new ResponseEntity<>(response, HttpStatus.OK);
                 } else {
