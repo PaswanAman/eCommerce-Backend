@@ -13,4 +13,5 @@ public interface StoreService {
     StoreDto storeGetById(Long storeId);
     List<StoreDto> getAllStores();
     StoreDto getStoreBySellerId(Long sellerId);
+    void deleteStore(Long storeId);
 }
