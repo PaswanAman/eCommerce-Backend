@@ -113,8 +113,8 @@ public class SecurityConfig extends WebMvcAutoConfiguration {
                         .requestMatchers("/api/v1/user/seller/**","/api/v1/auth/changePassword","/api/v1/create").hasAnyAuthority("ROLE_SELLER")
                         .requestMatchers("/api/v1/user/product/{productId}","/api/v1/comment/**").authenticated()
                                 .requestMatchers("/api/v1/user/product/category/{categoryName}").authenticated()
-                        .requestMatchers("/api/v1/user/cart/buyer/**","/api/v1/user/buyer/**","/api/v1/auth/changePassword").hasAnyAuthority("ROLE_BUYER")
-                        .requestMatchers("/api/v1/user/cart/{userId}").authenticated()
+                        .requestMatchers("/api/v1/user/cart/**","/api/v1/user/buyer/**","/api/v1/auth/changePassword").hasAnyAuthority("ROLE_BUYER")
+//                        .requestMatchers("/api/v1/user/cart/{userId}").authenticated()
                          )
                 .exceptionHandling(ex-> ex.authenticationEntryPoint(point))
                 .sessionManagement(session ->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

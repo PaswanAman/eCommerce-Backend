@@ -1,12 +1,11 @@
 package com.zosh.ecommerce.serviceImpl;
 
 import com.zosh.ecommerce.Dto.CartDto;
-import com.zosh.ecommerce.Dto.ProductDto;
-import com.zosh.ecommerce.Dto.UserDto;
+import com.zosh.ecommerce.Dto.ProductQuantityDto;
 import com.zosh.ecommerce.entities.Cart;
 import com.zosh.ecommerce.entities.CartQuantity;
 import com.zosh.ecommerce.entities.Product;
-import com.zosh.ecommerce.entities.User;
+import com.zosh.ecommerce.entities.ProductImage;
 import com.zosh.ecommerce.exception.ResourceNotFoundException;
 import com.zosh.ecommerce.repository.CartQuantityRepo;
 import com.zosh.ecommerce.repository.CartRepo;
@@ -15,11 +14,12 @@ import com.zosh.ecommerce.repository.UserRepo;
 import com.zosh.ecommerce.service.CartService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Transactional
@@ -41,6 +41,9 @@ public class CartServiceImpl implements CartService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Value("${picture.base-url}")
+    private String baseurl;
 
     @Override
     public CartDto addProductToCart(Long userId, Long productId, Integer productQuantity) {
@@ -68,17 +71,50 @@ public class CartServiceImpl implements CartService {
         return this.modelMapper.map(cartUser, CartDto.class);
     }
 
+
     @Override
-    public CartDto getCartByUserId(Long userId) {
-        Cart cart = this.cartRepo.findById(userId).orElseThrow();
-        List<List<Product>> products = cartRepo.findById(cart.getCartId()).stream()
-                .map(Cart::getProducts)
-                .toList();
-        CartDto cartDto = modelMapper.map(cart, CartDto.class);
-        cartDto.setProductId(products);
+    public CartDto getUserCart(Long userId) {
+        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("Cart not found","Id", userId));
+
+
+        CartDto cartDto = new CartDto();
+        cartDto.setCartId(cart.getCartId());
+        cartDto.setUserId(userId);
+
+        Integer totalQuantity = 0;
+        List<ProductQuantityDto> productQuantityDtos = new ArrayList<>();
+
+        for (CartQuantity cartQuantity : cart.getCartQuantity()) {
+            Product product = cartQuantity.getProduct();
+            totalQuantity += cartQuantity.getQuantity();
+
+
+            ProductQuantityDto productQuantityDto = new ProductQuantityDto();
+            productQuantityDto.setProductId(product.getProductId());
+            productQuantityDto.setTitle(product.getTitle());
+            productQuantityDto.setBrand(product.getBrand());
+            productQuantityDto.setDescription(product.getDescription());
+            productQuantityDto.setPrice(product.getPrice());
+            productQuantityDto.setQuantity(cartQuantity.getQuantity());
+
+            List<String> imageUrls= new ArrayList<>();
+            for (ProductImage image : product.getImages()) {
+                imageUrls.add( baseurl+"/api/v1/auth/picture/" +image.getImage());
+            }
+
+            productQuantityDto.setImageUrls(imageUrls);
+
+            productQuantityDtos.add(productQuantityDto);
+        }
+
+        cartDto.setQuantity(totalQuantity);
+        cartDto.setProducts(productQuantityDtos);
+        cartDto.setTotalPrice(cart.getTotalPrice());
+
         return cartDto;
 
     }
+
 
     @Override
     public CartDto removeProductFromCart(Long cartId, Long productId, Integer productQuantity) {

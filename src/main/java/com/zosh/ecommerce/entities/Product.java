@@ -1,6 +1,7 @@
 package com.zosh.ecommerce.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,6 +36,7 @@ public class Product {
 
     @ManyToOne
     @JoinColumn(name = "seller_id",nullable = false)
+    @JsonIgnore
     private User seller;
 
 
@@ -49,7 +51,15 @@ public class Product {
     private Category category;
 
 
-
+    @Override
+    public String toString() {
+        return "Product{" +
+                "productId=" + productId +
+                ", title='" + title + '\'' +
+                ", price=" + price +
+                // Avoid printing the full cart or other entities
+                '}';
+    }
 
 
 }

@@ -25,17 +25,15 @@ public class CartController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<CartDto> getCartByUserId(@PathVariable Long userId) {
-        logger.info("Get Cart By User Id API called");
-        try {
-            CartDto cartDto = cartService.getCartByUserId(userId);
-            logger.info("Get Product By Cart Id");
-            return ResponseEntity.ok(cartDto);
-        } catch (RuntimeException e) {
-            logger.info("Error to get Cart By Id");
-            return ResponseEntity.status(404).body(null);
-        }
+    public ResponseEntity<CartDto> getUserCart(@PathVariable Long userId) {
+        // Call the service method to fetch the cart for the user
+        CartDto cartDto = cartService.getUserCart(userId);
+
+        // Return the CartDto in the response
+        return ResponseEntity.ok(cartDto);
     }
+
+
 
     @DeleteMapping("/buyer/{cartId}/deleteCart/{productId}/{quantity}")
     public CartDto removeProductFromCart(@PathVariable Long cartId, @PathVariable Long productId, @PathVariable Integer quantity){

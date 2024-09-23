@@ -1,5 +1,6 @@
 package com.zosh.ecommerce.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -28,15 +29,26 @@ public class Cart {
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "cart_products", joinColumns = @JoinColumn(name = "cart_id"), inverseJoinColumns = @JoinColumn(name = "product_id"))
+    @JsonIgnore
     private List<Product> products;
 
 
-    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CartQuantity> cartQuantity;
 
 
     private Integer totalQuantity;
     private Double totalPrice;
+
+    @Override
+    public String toString() {
+        return "Cart{" +
+                "cartId=" + cartId +
+                ", totalQuantity=" + totalQuantity +
+                ", totalPrice=" + totalPrice +
+                // Avoid direct references to User or Product here
+                '}';
+    }
 
 
 

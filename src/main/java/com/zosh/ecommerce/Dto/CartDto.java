@@ -1,6 +1,5 @@
 package com.zosh.ecommerce.Dto;
 
-import com.zosh.ecommerce.entities.Product;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,9 +13,9 @@ import java.util.List;
 @NoArgsConstructor
 public class CartDto {
 
-    private String cartId;
-    private String userId;
-    private List<List<Product>> productId;
+    private Long cartId;
+    private Long userId;
+    private List<ProductQuantityDto> products;
     private Integer quantity;
     private Double totalPrice;
 

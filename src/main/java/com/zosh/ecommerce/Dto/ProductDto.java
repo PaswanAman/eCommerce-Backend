@@ -22,6 +22,7 @@ public class ProductDto {
     private String brand;
     private String description;
     private Double price;
+    private Integer quantity;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd mm:ss")
     @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime expirationDate;
@@ -35,6 +36,5 @@ public class ProductDto {
     private List<String> imageUrls;
     private Long sellerId;
 
-//    public void setImageUrls(List<String> imageUrls) {
-//    }
+
 }

@@ -101,4 +101,13 @@ public class User{
     public void setIsOtpVerified(boolean b) {
         this.OtpVerified = b;
     }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +  // Include only necessary fields
+                ", name='" + fullName + '\'' +
+                // Don't include cart or other entities that might cause recursion
+                '}';
+    }
 }
