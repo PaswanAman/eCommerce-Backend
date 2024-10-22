@@ -1,6 +1,8 @@
 package com.zosh.ecommerce.serviceImpl;
 
+import com.zosh.ecommerce.Dto.AddProductToCartDto;
 import com.zosh.ecommerce.Dto.CartDto;
+import com.zosh.ecommerce.Dto.ProductDto;
 import com.zosh.ecommerce.Dto.ProductQuantityDto;
 import com.zosh.ecommerce.entities.Cart;
 import com.zosh.ecommerce.entities.CartQuantity;
@@ -46,35 +48,76 @@ public class CartServiceImpl implements CartService {
     private String baseurl;
 
     @Override
-    public CartDto addProductToCart(Long userId, Long productId, Integer productQuantity) {
-//
-        Product product = productRepo.findById(productId).orElseThrow();
-        Cart cart = cartRepo.findByUserId(userId).orElseThrow();
-        CartQuantity cartQuantity = new CartQuantity();
-        cartQuantity.setCart(cart);
-        cartQuantity.setProduct(product);
-        cartQuantity.setQuantity(productQuantity);
-        cart.getCartQuantity().add(cartQuantity);
-        productRepo.save(product);
-        cartQuantityRepo.save(cartQuantity);
+    public AddProductToCartDto addProductToCart(Long userId, Long productId, Integer productQuantity) {
 
-        Integer qnt = cart.getTotalQuantity();
-        cart.setTotalQuantity(qnt + productQuantity);
+        Product product = productRepo.findById(productId).orElseThrow(() ->
+                new ResourceNotFoundException("product with","Id",productId));
 
+        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
+                new ResourceNotFoundException("cart with user","Id",userId));
 
-        Double price = cart.getTotalPrice();
-        cart.setTotalPrice(price + (product.getPrice() * productQuantity));
+        CartQuantity existingCartQuantity = null;
+        for (CartQuantity cartQuantity : cart.getCartQuantity()) {
+            if (cartQuantity.getProduct().getProductId().equals(productId)) {
+                existingCartQuantity = cartQuantity;
+                break;
+            }
+        }
 
-        cart.getProducts().add(product);
+        if (existingCartQuantity != null) {
+            // Product already exists in the cart, update its quantity and total price
+            existingCartQuantity.setQuantity(existingCartQuantity.getQuantity() + productQuantity);
 
-        Cart cartUser = this.cartRepo.save(cart);
-        return this.modelMapper.map(cartUser, CartDto.class);
+            // Update cart's total quantity and total price
+            cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
+            cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
+
+            // Save updated cart and cartQuantity
+            cartQuantityRepo.save(existingCartQuantity);
+            cartRepo.save(cart);
+
+            // Create and return AddProductToCartDto with the updated product
+            AddProductToCartDto cartDto = new AddProductToCartDto();
+            cartDto.setCartId(cart.getCartId());
+            cartDto.setUserId(userId);
+            cartDto.setProducts(modelMapper.map(product, ProductDto.class));
+            cartDto.setQuantity(existingCartQuantity.getQuantity());
+            cartDto.setTotalPrice(cart.getTotalPrice());
+
+            return cartDto;
+        }
+
+        // If the product is not in the cart, add a new CartQuantity
+        CartQuantity newCartQuantity = new CartQuantity();
+        newCartQuantity.setCart(cart);
+        newCartQuantity.setProduct(product);
+        newCartQuantity.setQuantity(productQuantity);
+        cart.getCartQuantity().add(newCartQuantity);
+
+        // Update cart's total quantity and total price
+        cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
+        cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
+
+        // Save new cartQuantity and updated cart
+        cartQuantityRepo.save(newCartQuantity);
+        Cart updatedCart = cartRepo.save(cart);
+
+        // Create and return AddProductToCartDto with the newly added product
+        AddProductToCartDto cartDto = new AddProductToCartDto();
+        cartDto.setCartId(updatedCart.getCartId());
+        cartDto.setUserId(userId);
+        cartDto.setProducts(modelMapper.map(product, ProductDto.class));
+        cartDto.setQuantity(productQuantity);
+        cartDto.setTotalPrice(updatedCart.getTotalPrice());
+
+        return cartDto;
     }
 
 
     @Override
     public CartDto getUserCart(Long userId) {
-        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("Cart not found","Id", userId));
+        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
+                new ResourceNotFoundException("Cart not found","Id", userId));
 
 
         CartDto cartDto = new CartDto();

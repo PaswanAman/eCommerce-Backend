@@ -22,12 +22,12 @@ public class ProductDto {
     private String brand;
     private String description;
     private Double price;
-    private Integer quantity;
+//    private Integer quantity;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd mm:ss")
-    @Temporal(TemporalType.TIMESTAMP)
+//    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime expirationDate;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd mm:ss")
-    @Temporal(TemporalType.TIMESTAMP)
+//    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime addedDate;
     private Boolean historyStatus;
     private Boolean hiddenPost;
