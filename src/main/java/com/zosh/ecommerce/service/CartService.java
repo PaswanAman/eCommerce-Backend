@@ -10,6 +10,8 @@ public interface CartService {
      AddProductToCartDto addProductToCart(Long userId, Long productId, Integer totalQuantity);
 
      CartDto getUserCart(Long userId);
-     CartDto removeProductFromCart(Long cartId, Long productId, Integer totalQuantity);
+//     CartDto removeProductFromCart(Long cartId, Long productId, Integer totalQuantity);
+     CartDto deleteProductFromCart(Long userId, Long productId);
+
 
 }

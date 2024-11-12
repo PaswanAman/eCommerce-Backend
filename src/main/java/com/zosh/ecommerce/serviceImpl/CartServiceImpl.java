@@ -168,34 +168,90 @@ public class CartServiceImpl implements CartService {
     }
 
 
+//    @Override
+//    public CartDto removeProductFromCart(Long cartId, Long productId, Integer productQuantity) {
+//        Cart cart = cartRepo.findById(cartId).orElseThrow();
+//        Product product = productRepo.findById(productId).orElseThrow();
+//        CartQuantity cartQuantity = cartQuantityRepo.findByCartAndProduct(cart, product);
+//
+//        Integer existingQuantity = cartQuantity.getQuantity();
+//        if (existingQuantity <= productQuantity) {
+//            cart.getCartQuantity().remove(cartQuantity);
+//            cart.getProducts().remove(product);
+//            cartQuantityRepo.deleteCartQuantityById(cartQuantity.getCartQuantityId());
+//            System.out.println("CartQuantity deleted and product removed from cart");
+//        } else {
+//
+//            cartQuantity.setQuantity(existingQuantity - productQuantity);
+//            cartQuantityRepo.save(cartQuantity);
+//        }
+//
+//        Integer qnt = cart.getTotalQuantity();
+//        if (qnt == 0) {
+//            cartRepo.delete(cart);
+//        } else {
+//            cart.setTotalQuantity(qnt - productQuantity);
+//        }
+//        Double price = cart.getTotalPrice();
+//        cart.setTotalPrice(price - (product.getPrice() * productQuantity));
+//
+//        Cart cartUser = this.cartRepo.save(cart);
+//        return this.modelMapper.map(cartUser, CartDto.class);
+//    }
+
     @Override
-    public CartDto removeProductFromCart(Long cartId, Long productId, Integer productQuantity) {
-        Cart cart = cartRepo.findById(cartId).orElseThrow();
-        Product product = productRepo.findById(productId).orElseThrow();
-        CartQuantity cartQuantity = cartQuantityRepo.findByCartAndProduct(cart, product);
+    public CartDto deleteProductFromCart(Long userId, Long productId) {
+        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
+                new ResourceNotFoundException("cart with user", "Id", userId));
 
-        Integer existingQuantity = cartQuantity.getQuantity();
-        if (existingQuantity <= productQuantity) {
-            cart.getCartQuantity().remove(cartQuantity);
-            cart.getProducts().remove(product);
-            cartQuantityRepo.deleteCartQuantityById(cartQuantity.getCartQuantityId());
-            System.out.println("CartQuantity deleted and product removed from cart");
-        } else {
+        // Find the specific product in the cart
+        CartQuantity cartQuantity = cart.getCartQuantity().stream()
+                .filter(qty -> qty.getProduct().getProductId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Product in cart", "Id", productId));
 
-            cartQuantity.setQuantity(existingQuantity - productQuantity);
-            cartQuantityRepo.save(cartQuantity);
-        }
+        // Adjust the cart's total quantity and total price
+        cart.setTotalQuantity(cart.getTotalQuantity() - cartQuantity.getQuantity());
+        cart.setTotalPrice(cart.getTotalPrice() - (cartQuantity.getProduct().getPrice() * cartQuantity.getQuantity()));
 
-        Integer qnt = cart.getTotalQuantity();
-        if (qnt == 0) {
-            cartRepo.delete(cart);
-        } else {
-            cart.setTotalQuantity(qnt - productQuantity);
-        }
-        Double price = cart.getTotalPrice();
-        cart.setTotalPrice(price - (product.getPrice() * productQuantity));
+        // Remove the CartQuantity entry from the cart's list
+        cart.getCartQuantity().remove(cartQuantity);
 
-        Cart cartUser = this.cartRepo.save(cart);
-        return this.modelMapper.map(cartUser, CartDto.class);
+        // Delete the CartQuantity from the database
+        cartQuantityRepo.delete(cartQuantity);
+
+        // Save the updated cart
+        Cart updatedCart = cartRepo.save(cart);
+
+        // Create and populate CartDto for the response
+        CartDto cartDto = new CartDto();
+        cartDto.setCartId(updatedCart.getCartId());
+        cartDto.setUserId(userId);
+        cartDto.setQuantity(updatedCart.getTotalQuantity());
+        cartDto.setTotalPrice(updatedCart.getTotalPrice());
+
+        // Map remaining products in the cart to ProductQuantityDto
+        List<ProductQuantityDto> products = updatedCart.getCartQuantity().stream()
+                .map(cartQty -> {
+                    Product product = cartQty.getProduct();
+                    ProductQuantityDto productQuantityDto = new ProductQuantityDto();
+                    productQuantityDto.setProductId(product.getProductId());
+                    productQuantityDto.setTitle(product.getTitle());
+                    productQuantityDto.setBrand(product.getBrand());
+                    productQuantityDto.setDescription(product.getDescription());
+                    productQuantityDto.setPrice(product.getPrice());
+                    productQuantityDto.setQuantity(cartQty.getQuantity());
+                    List<String> imageUrls= new ArrayList<>();
+                    for (ProductImage image : product.getImages()) {
+                        imageUrls.add( baseurl+"/api/v1/auth/picture/" +image.getImage());
+                    }
+
+                    productQuantityDto.setImageUrls(imageUrls); // Assuming product has a list of image URLs
+                    return productQuantityDto;
+                })
+                .collect(Collectors.toList());
+        cartDto.setProducts(products);
+
+        return cartDto;
     }
 }
