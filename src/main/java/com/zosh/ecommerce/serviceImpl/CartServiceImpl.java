@@ -51,10 +51,10 @@ public class CartServiceImpl implements CartService {
     public AddProductToCartDto addProductToCart(Long userId, Long productId, Integer productQuantity) {
 
         Product product = productRepo.findById(productId).orElseThrow(() ->
-                new ResourceNotFoundException("product with","Id",productId));
+                new ResourceNotFoundException("product with", "Id", productId));
 
         Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
-                new ResourceNotFoundException("cart with user","Id",userId));
+                new ResourceNotFoundException("cart with user", "Id", userId));
 
         CartQuantity existingCartQuantity = null;
         for (CartQuantity cartQuantity : cart.getCartQuantity()) {
@@ -66,11 +66,20 @@ public class CartServiceImpl implements CartService {
 
         if (existingCartQuantity != null) {
             // Product already exists in the cart, update its quantity and total price
-            existingCartQuantity.setQuantity(existingCartQuantity.getQuantity() + productQuantity);
+            int newQuantity = existingCartQuantity.getQuantity() + productQuantity;
+
+            // Ensure the product quantity does not go below 1
+            if (newQuantity < 1) {
+                newQuantity = 1;
+            }
+
+            int quantityDifference = newQuantity - existingCartQuantity.getQuantity();
+
+            existingCartQuantity.setQuantity(newQuantity);
 
             // Update cart's total quantity and total price
-            cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
-            cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
+            cart.setTotalQuantity(cart.getTotalQuantity() + quantityDifference);
+            cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * quantityDifference));
 
             // Save updated cart and cartQuantity
             cartQuantityRepo.save(existingCartQuantity);
@@ -91,12 +100,12 @@ public class CartServiceImpl implements CartService {
         CartQuantity newCartQuantity = new CartQuantity();
         newCartQuantity.setCart(cart);
         newCartQuantity.setProduct(product);
-        newCartQuantity.setQuantity(productQuantity);
+        newCartQuantity.setQuantity(Math.max(productQuantity, 1)); // Ensure at least 1
         cart.getCartQuantity().add(newCartQuantity);
 
         // Update cart's total quantity and total price
-        cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
-        cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
+        cart.setTotalQuantity(cart.getTotalQuantity() + Math.max(productQuantity, 1));
+        cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * Math.max(productQuantity, 1)));
 
         // Save new cartQuantity and updated cart
         cartQuantityRepo.save(newCartQuantity);
@@ -107,7 +116,7 @@ public class CartServiceImpl implements CartService {
         cartDto.setCartId(updatedCart.getCartId());
         cartDto.setUserId(userId);
         cartDto.setProducts(modelMapper.map(product, ProductDto.class));
-        cartDto.setQuantity(productQuantity);
+        cartDto.setQuantity(newCartQuantity.getQuantity());
         cartDto.setTotalPrice(updatedCart.getTotalPrice());
 
         return cartDto;
