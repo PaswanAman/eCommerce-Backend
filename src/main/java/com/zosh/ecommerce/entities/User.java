@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Getter
 @Setter
-@ToString
+//@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
@@ -59,8 +59,8 @@ public class User{
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Otp otp;
+//    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private Otp otp;
 
 
 
@@ -102,12 +102,12 @@ public class User{
         this.OtpVerified = b;
     }
 
-    @Override
-    public String toString() {
-        return "User{" +
-                "id=" + id +  // Include only necessary fields
-                ", name='" + fullName + '\'' +
-                // Don't include cart or other entities that might cause recursion
-                '}';
-    }
+//    @Override
+//    public String toString() {
+//        return "User{" +
+//                "id=" + id +  // Include only necessary fields
+//                ", name='" + fullName + '\'' +
+//                // Don't include cart or other entities that might cause recursion
+//                '}';
+//    }
 }

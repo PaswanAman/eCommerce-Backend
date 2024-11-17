@@ -14,7 +14,7 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
+//@ToString
 @Table(name="cart")
 public class Cart {
 
@@ -27,28 +27,28 @@ public class Cart {
     private User user;
 
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     @JoinTable(name = "cart_products", joinColumns = @JoinColumn(name = "cart_id"), inverseJoinColumns = @JoinColumn(name = "product_id"))
     @JsonIgnore
     private List<Product> products;
 
 
-    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY,orphanRemoval = true)
     private List<CartQuantity> cartQuantity;
 
 
     private Integer totalQuantity;
     private Double totalPrice;
 
-    @Override
-    public String toString() {
-        return "Cart{" +
-                "cartId=" + cartId +
-                ", totalQuantity=" + totalQuantity +
-                ", totalPrice=" + totalPrice +
-                // Avoid direct references to User or Product here
-                '}';
-    }
+//    @Override
+//    public String toString() {
+//        return "Cart{" +
+//                "cartId=" + cartId +
+//                ", totalQuantity=" + totalQuantity +
+//                ", totalPrice=" + totalPrice +
+//                // Avoid direct references to User or Product here
+//                '}';
+//    }
 
 
 

@@ -11,7 +11,7 @@ public interface CartService {
 
      CartDto getUserCart(Long userId);
 //     CartDto removeProductFromCart(Long cartId, Long productId, Integer totalQuantity);
-     CartDto deleteProductFromCart(Long userId, Long productId);
+     void deleteProductFromCart(Long userId, Long productId);
 
 
 }

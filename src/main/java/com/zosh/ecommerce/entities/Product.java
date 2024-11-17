@@ -10,7 +10,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@ToString
+//@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
@@ -51,15 +51,15 @@ public class Product {
     private Category category;
 
 
-    @Override
-    public String toString() {
-        return "Product{" +
-                "productId=" + productId +
-                ", title='" + title + '\'' +
-                ", price=" + price +
-                // Avoid printing the full cart or other entities
-                '}';
-    }
+//    @Override
+//    public String toString() {
+//        return "Product{" +
+//                "productId=" + productId +
+//                ", title='" + title + '\'' +
+//                ", price=" + price +
+//                // Avoid printing the full cart or other entities
+//                '}';
+//    }
 
 
 }

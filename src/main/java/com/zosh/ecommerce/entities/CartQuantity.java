@@ -7,7 +7,7 @@ import lombok.*;
 @Table(name = "cart_quantity")
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
+//@ToString
 @Getter
 @Setter
 public class CartQuantity {
@@ -21,20 +21,20 @@ public class CartQuantity {
     private Cart cart;
 
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "product_id")
     private Product product;
 
 
     private Integer quantity;
 
-    @Override
-    public String toString() {
-        return "CartQuantity{" +
-                "cartQuantityId=" + cartQuantityId +
-                ", quantity=" + quantity +
-                // Avoid printing the cart or product directly
-                '}';
-    }
+//    @Override
+//    public String toString() {
+//        return "CartQuantity{" +
+//                "cartQuantityId=" + cartQuantityId +
+//                ", quantity=" + quantity +
+//                // Avoid printing the cart or product directly
+//                '}';
+//    }
 
 }

@@ -56,12 +56,13 @@ public class CartController {
     @DeleteMapping("/remove/{userId}/{productId}")
     public ResponseEntity<?> removeProductFromCart(@PathVariable Long userId, @PathVariable Long productId) {
         try {
-            CartDto updatedCart = cartService.deleteProductFromCart(userId, productId);
-            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","delete product successful","cart",updatedCart));
+             cartService.deleteProductFromCart(userId, productId);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","delete product successful"));
         } catch (ResourceNotFoundException e) {
 
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status","error","message", e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("status","error","message", e.getMessage()));
         }
     }
