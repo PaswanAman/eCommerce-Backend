@@ -199,31 +199,47 @@ public class CartServiceImpl implements CartService {
 //        return this.modelMapper.map(cartUser, CartDto.class);
 //    }
 
+    @Transactional
     @Override
     public void deleteProductFromCart(Long userId, Long productId) {
+        // Fetch the cart by user ID
         Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
                 new ResourceNotFoundException("Cart not found for user", "Id", userId));
 
-        // Find the cartQuantity for the given product
+        // Find the CartQuantity entry for the given product in the cart
         CartQuantity cartQuantity = cart.getCartQuantity().stream()
                 .filter(q -> q.getProduct().getProductId().equals(productId))
                 .findFirst()
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Product not found in cart", "Id", productId));
 
-        // Update cart totals
+
         int quantityToRemove = cartQuantity.getQuantity();
-        cart.setTotalQuantity(cart.getTotalQuantity() - quantityToRemove);
-        cart.setTotalPrice(cart.getTotalPrice() - (cartQuantity.getProduct().getPrice() * quantityToRemove));
+        double productPrice = cartQuantity.getProduct().getPrice();
 
-        // Remove the product from the cart's product list
-        cart.getProducts().remove(cartQuantity.getProduct());
+        // Update cart totals, ensuring they do not go negative
+        double newTotalPrice = cart.getTotalPrice() - (productPrice * quantityToRemove);
+        int newTotalQuantity = cart.getTotalQuantity() - quantityToRemove;
 
-        // Remove the CartQuantity from the cart
+        if (newTotalPrice < 0) {
+            newTotalPrice = 0;
+        }
+        if (newTotalQuantity < 0) {
+            newTotalQuantity = 0;
+        }
+
+        cart.setTotalQuantity(newTotalQuantity);
+        cart.setTotalPrice(newTotalPrice);
+
+        // Remove the CartQuantity entry from the cart
         cart.getCartQuantity().remove(cartQuantity);
 
-        // Delete the CartQuantity entry
+        // Optionally, remove the product from the cart if it's not linked directly via CartQuantity
+        // cart.getProducts().remove(cartQuantity.getProduct());
+
+        // Delete the CartQuantity entry from the repository
         cartQuantityRepo.delete(cartQuantity);
+//        cartQuantityRepo.save(cartQuantity);
 
         // Save the updated cart
         cartRepo.save(cart);

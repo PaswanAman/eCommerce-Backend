@@ -33,7 +33,7 @@ public class Cart {
     private List<Product> products;
 
 
-    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY,orphanRemoval = true)
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL,orphanRemoval = true)
     private List<CartQuantity> cartQuantity;
 
 
