@@ -202,46 +202,40 @@ public class CartServiceImpl implements CartService {
     @Transactional
     @Override
     public void deleteProductFromCart(Long userId, Long productId) {
-        // Fetch the cart by user ID
+        // Fetch the cart for the given userId
         Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
                 new ResourceNotFoundException("Cart not found for user", "Id", userId));
 
-        // Find the CartQuantity entry for the given product in the cart
+        // Find the CartQuantity for the given productId in the cart
         CartQuantity cartQuantity = cart.getCartQuantity().stream()
                 .filter(q -> q.getProduct().getProductId().equals(productId))
                 .findFirst()
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Product not found in cart", "Id", productId));
 
-
+        // Get the quantity and product price to update the cart
         int quantityToRemove = cartQuantity.getQuantity();
         double productPrice = cartQuantity.getProduct().getPrice();
 
-        // Update cart totals, ensuring they do not go negative
+        // Update the cart's total quantity and total price
         double newTotalPrice = cart.getTotalPrice() - (productPrice * quantityToRemove);
         int newTotalQuantity = cart.getTotalQuantity() - quantityToRemove;
 
-        if (newTotalPrice < 0) {
-            newTotalPrice = 0;
-        }
-        if (newTotalQuantity < 0) {
-            newTotalQuantity = 0;
-        }
+        // Ensure totals don't go below zero
+        newTotalPrice = Math.max(newTotalPrice, 0);
+        newTotalQuantity = Math.max(newTotalQuantity, 0);
 
+        // Set the updated total values on the cart
         cart.setTotalQuantity(newTotalQuantity);
         cart.setTotalPrice(newTotalPrice);
 
-        // Remove the CartQuantity entry from the cart
+        // Remove the CartQuantity entry from the cart's cartQuantity list
         cart.getCartQuantity().remove(cartQuantity);
 
-        // Optionally, remove the product from the cart if it's not linked directly via CartQuantity
-        // cart.getProducts().remove(cartQuantity.getProduct());
-
-        // Delete the CartQuantity entry from the repository
+        // Delete the CartQuantity entry from the database
         cartQuantityRepo.delete(cartQuantity);
-//        cartQuantityRepo.save(cartQuantity);
 
-        // Save the updated cart
+        // Save the updated cart with new totals
         cartRepo.save(cart);
     }
 }
