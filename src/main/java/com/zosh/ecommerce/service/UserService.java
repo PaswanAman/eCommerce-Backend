@@ -5,6 +5,7 @@ import com.zosh.ecommerce.Dto.UserDto;
 import com.zosh.ecommerce.Dto.UserUpdateDto;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -22,5 +23,5 @@ public interface UserService {
     public UserDto forgetPassword(UserDto userDto, String userToken);
     public boolean verifyForgetPassword(String userToken, String oldPassword);
 
-
+    public List<UserDto> findAllUsers();
 }

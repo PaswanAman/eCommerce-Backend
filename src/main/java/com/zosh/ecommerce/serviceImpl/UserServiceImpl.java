@@ -242,6 +242,10 @@ public class UserServiceImpl implements UserService {
         return passwordEncoder.matches(oldPassword, user.getPassword());
     }
 
-
+    public List<UserDto> findAllUsers() {
+        return userRepository.findAll().stream()
+                .map(user -> modelMapper.map(user, UserDto.class))
+                .collect(Collectors.toList());
+    }
 
 }

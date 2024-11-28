@@ -18,8 +18,6 @@ import com.zosh.ecommerce.service.UserService;
 import com.zosh.ecommerce.serviceImpl.AdminUserDetailService;
 import com.zosh.ecommerce.serviceImpl.CustomUserDetailService;
 import com.zosh.ecommerce.serviceImpl.OtpService;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -36,7 +34,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -213,8 +210,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body(errorMap);
         }
 
-
-
         if (userService.existByMobileNumber(userDto.getMobileNumber())) {
             String errorMessage = "Mobile number already exists";
             Map<String, String> response = new HashMap<>();
@@ -255,10 +250,6 @@ public class AuthController {
         }
 
     }
-
-
-
-
 
     // For Seller
 

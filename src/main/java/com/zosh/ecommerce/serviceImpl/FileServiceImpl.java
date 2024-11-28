@@ -75,7 +75,10 @@ public class FileServiceImpl implements FileService {
 
         return imageFileName;
     }
-
+    public byte[] loadPicture(String picturePath) throws IOException {
+        Path path = Paths.get(picturePath);
+        return Files.readAllBytes(path);
+    }
 
     private String generateUniqueFileName(String originalFilename) {
         String fileExtension = StringUtils.getFilenameExtension(originalFilename);

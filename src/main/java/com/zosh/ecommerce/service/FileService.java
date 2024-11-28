@@ -16,5 +16,5 @@ public interface FileService {
 
 //    boolean isPictureFile();
     String uploadImage(MultipartFile image) throws IOException;
-
+    public byte[] loadPicture(String picturePath) throws IOException;
 }
