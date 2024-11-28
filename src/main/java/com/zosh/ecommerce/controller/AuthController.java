@@ -516,6 +516,7 @@ public class AuthController {
 
     @PostMapping("/verifyOtp")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpVerificationRequest request) {
+        logger.info("verify otp api called");
         try {
             otpService.verifyOtp(request.getOtpCode());
             return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","Otp verify successfully"));
@@ -526,6 +527,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("status","error","message","User not found: " + e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred: " + e.getMessage());
         }

@@ -8,7 +8,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface CartService {
-     AddProductToCartDto addProductToCart(Long userId, Long productId, Integer totalQuantity);
+//     AddProductToCartDto addProductToCart(Long userId, Long productId, Integer totalQuantity);
+     AddProductToCartDto addProductToCart(Long userId, Long productId, Integer quantity) throws Exception;
 
      CartDto getUserCart(Long userId);
 //     CartDto removeProductFromCart(Long cartId, Long productId, Integer totalQuantity);

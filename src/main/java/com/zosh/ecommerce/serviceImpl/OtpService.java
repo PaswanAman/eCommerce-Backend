@@ -44,29 +44,24 @@ public class OtpService {
         return otpCode;
     }
 
+    @Transactional
     public void verifyOtp(String otpCode) {
         Otp otp = otpRepository.findByOtpCode(otpCode)
                 .orElseThrow(() -> new OtpNotFoundException("OTP not found or expired"));
 
+        User user = otp.getUser();
+
         if (otp.isValid()) {
-
-            User user = otp.getUser();
-
-
             user.setEnabled(true);
             userRepo.save(user);
 
-            // Delete the OTP from the database, not the user
-            otpRepository.delete(otp);
+            otpRepository.delete(otp); // OTP deleted successfully
         } else {
-            User user = otp.getUser();
-
-            // Delete the OTP first
             otpRepository.delete(otp);
-
-            // Delete the associated user
             userRepo.delete(user);
-            throw new OtpNotFoundException("OTP verification failed");
+
+            throw new OtpNotFoundException("OTP verification failed, user deleted.");
+
         }
     }
 

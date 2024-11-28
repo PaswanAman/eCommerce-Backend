@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Transactional
@@ -42,85 +43,57 @@ public class CartServiceImpl implements CartService {
     @Value("${picture.base-url}")
     private String baseurl;
 
-    @Override
+    @Transactional
     public AddProductToCartDto addProductToCart(Long userId, Long productId, Integer productQuantity) {
 
+        // Fetch Product
         Product product = productRepo.findById(productId).orElseThrow(() ->
-                new ResourceNotFoundException("product with", "Id", productId));
+                new ResourceNotFoundException("Product not found", "Id", productId));
 
+        // Fetch Cart for the User
         Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
-                new ResourceNotFoundException("cart with user", "Id", userId));
+                new ResourceNotFoundException("Cart not found", "UserId", userId));
 
-        CartQuantity existingCartQuantity = null;
-        for (CartQuantity cartQuantity : cart.getCartQuantity()) {
-            if (cartQuantity.getProduct().getProductId().equals(productId)) {
-                existingCartQuantity = cartQuantity;
-                break;
-            }
-        }
+        // Check if the product already exists in the cart
+        Optional<CartQuantity> optionalCartQuantity = cartQuantityRepo.findCartQuantity(cart.getCartId(), productId);
 
-        if (existingCartQuantity != null) {
-            // Product already exists in the cart, update its quantity and total price
+        if (optionalCartQuantity.isPresent()) {
+            // Product already in cart, update quantity
+            CartQuantity existingCartQuantity = optionalCartQuantity.get();
             int newQuantity = existingCartQuantity.getQuantity() + productQuantity;
+            newQuantity = Math.max(newQuantity, 1);  // Ensure at least 1
 
-            // Ensure the product quantity does not go below 1
-            if (newQuantity < 1) {
-                newQuantity = 1;
+            // Update the quantity in the cart
+            int rowsUpdated = cartQuantityRepo.updateCartQuantity(cart.getCartId(), productId, newQuantity);
+
+            if (rowsUpdated > 0) {
+                cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
+                cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
+                cartRepo.save(cart);  // Save the updated cart
             }
+        } else {
+            // If product doesn't exist, add new CartQuantity
+            CartQuantity newCartQuantity = new CartQuantity();
+            newCartQuantity.setCart(cart);
+            newCartQuantity.setProduct(product);
+            newCartQuantity.setQuantity(Math.max(productQuantity, 1));
 
-            int quantityDifference = newQuantity - existingCartQuantity.getQuantity();
+            // Save new CartQuantity
+            cartQuantityRepo.save(newCartQuantity);
 
-            existingCartQuantity.setQuantity(newQuantity);
-
-            // Update cart's total quantity and total price
-            cart.setTotalQuantity(cart.getTotalQuantity() + quantityDifference);
-            cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * quantityDifference));
-
-            // Save updated cart and cartQuantity
-            cartQuantityRepo.save(existingCartQuantity);
-            cartRepo.save(cart);
-
-            // Create and return AddProductToCartDto with the updated product
-            AddProductToCartDto cartDto = new AddProductToCartDto();
-            cartDto.setCartId(cart.getCartId());
-            cartDto.setUserId(userId);
-            cartDto.setProducts(modelMapper.map(product, ProductDto.class));
-            cartDto.setQuantity(existingCartQuantity.getQuantity());
-            cartDto.setTotalPrice(cart.getTotalPrice());
-
-            return cartDto;
+            // Update cart total
+            cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
+            cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
+            cartRepo.save(cart);  // Save the updated cart
         }
 
-        // If the product is not in the cart, add a new CartQuantity
-        CartQuantity newCartQuantity = new CartQuantity();
-        newCartQuantity.setCart(cart);
-        newCartQuantity.setProduct(product);
-        newCartQuantity.setQuantity(Math.max(productQuantity, 1));
-
-        System.out.println("Before Adding: Cart ID: " + cart.getCartId());
-        System.out.println("Current Cart Quantity List Size: " + cart.getCartQuantity().size());// Ensure at least 1
-        cart.getCartQuantity().add(newCartQuantity);
-        System.out.println("After Adding: Cart ID: " + cart.getCartId());
-        System.out.println("Updated Cart Quantity List Size: " + cart.getCartQuantity().size());
-
-
-        // Update cart's total quantity and total price
-        cart.setTotalQuantity(cart.getTotalQuantity() + Math.max(productQuantity, 1));
-        cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * Math.max(productQuantity, 1)));
-
-
-
-        // Save new cartQuantity and updated cart
-        cartQuantityRepo.save(newCartQuantity);
-        Cart updatedCart = cartRepo.save(cart);
-
-        // Create and return AddProductToCartDto with the newly added product
+        // Create DTO for response
         AddProductToCartDto cartDto = new AddProductToCartDto();
-        cartDto.setCartId(updatedCart.getCartId());
+        cartDto.setCartId(cart.getCartId());
         cartDto.setUserId(userId);
-        cartDto.setProducts(modelMapper.map(product, ProductDto.class));
-        cartDto.setQuantity(newCartQuantity.getQuantity());
-        cartDto.setTotalPrice(updatedCart.getTotalPrice());
+        cartDto.setProducts(modelMapper.map(product, ProductDto.class));  // Map Product to ProductDto
+        cartDto.setQuantity(productQuantity);
+        cartDto.setTotalPrice(cart.getTotalPrice());
 
         return cartDto;
     }

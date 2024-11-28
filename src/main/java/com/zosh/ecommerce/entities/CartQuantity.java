@@ -7,7 +7,6 @@ import lombok.*;
 @Table(name = "cart_quantity")
 @AllArgsConstructor
 @NoArgsConstructor
-//@ToString
 @Getter
 @Setter
 public class CartQuantity {
@@ -28,13 +27,5 @@ public class CartQuantity {
 
     private Integer quantity;
 
-//    @Override
-//    public String toString() {
-//        return "CartQuantity{" +
-//                "cartQuantityId=" + cartQuantityId +
-//                ", quantity=" + quantity +
-//                // Avoid printing the cart or product directly
-//                '}';
-//    }
 
 }

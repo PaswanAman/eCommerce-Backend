@@ -10,7 +10,6 @@ import java.util.List;
 
 @Getter
 @Setter
-//@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
@@ -50,16 +49,6 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-
-//    @Override
-//    public String toString() {
-//        return "Product{" +
-//                "productId=" + productId +
-//                ", title='" + title + '\'' +
-//                ", price=" + price +
-//                // Avoid printing the full cart or other entities
-//                '}';
-//    }
 
 
 }
