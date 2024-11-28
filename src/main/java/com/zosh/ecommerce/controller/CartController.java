@@ -2,6 +2,7 @@ package com.zosh.ecommerce.controller;
 
 import com.zosh.ecommerce.Dto.AddProductToCartDto;
 import com.zosh.ecommerce.Dto.CartDto;
+import com.zosh.ecommerce.Dto.OrderDto;
 import com.zosh.ecommerce.entities.Cart;
 import com.zosh.ecommerce.exception.ResourceNotFoundException;
 import com.zosh.ecommerce.service.CartService;
@@ -61,6 +62,20 @@ public class CartController {
             return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","delete product successful"));
         } catch (ResourceNotFoundException e) {
 
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status","error","message", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("status","error","message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/checkout/{userId}")
+    public ResponseEntity<?> checkout(@PathVariable Long userId) {
+        logger.info("Checkout API called");
+        try {
+            OrderDto orderDto = cartService.checkout(userId);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","checkout successful","checkout",orderDto));
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status","error","message", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();

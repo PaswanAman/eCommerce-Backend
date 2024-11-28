@@ -251,6 +251,7 @@ public class AuthController {
             return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             logger.info("User register error");
+            e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 

@@ -40,15 +40,6 @@ public class Cart {
     private Integer totalQuantity;
     private Double totalPrice;
 
-//    @Override
-//    public String toString() {
-//        return "Cart{" +
-//                "cartId=" + cartId +
-//                ", totalQuantity=" + totalQuantity +
-//                ", totalPrice=" + totalPrice +
-//                // Avoid direct references to User or Product here
-//                '}';
-//    }
 
 
 

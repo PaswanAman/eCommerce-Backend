@@ -59,6 +59,13 @@ public class OtpService {
             // Delete the OTP from the database, not the user
             otpRepository.delete(otp);
         } else {
+            User user = otp.getUser();
+
+            // Delete the OTP first
+            otpRepository.delete(otp);
+
+            // Delete the associated user
+            userRepo.delete(user);
             throw new OtpNotFoundException("OTP verification failed");
         }
     }

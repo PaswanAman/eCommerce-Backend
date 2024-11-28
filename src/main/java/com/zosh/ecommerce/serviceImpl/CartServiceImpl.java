@@ -1,18 +1,9 @@
 package com.zosh.ecommerce.serviceImpl;
 
-import com.zosh.ecommerce.Dto.AddProductToCartDto;
-import com.zosh.ecommerce.Dto.CartDto;
-import com.zosh.ecommerce.Dto.ProductDto;
-import com.zosh.ecommerce.Dto.ProductQuantityDto;
-import com.zosh.ecommerce.entities.Cart;
-import com.zosh.ecommerce.entities.CartQuantity;
-import com.zosh.ecommerce.entities.Product;
-import com.zosh.ecommerce.entities.ProductImage;
+import com.zosh.ecommerce.Dto.*;
+import com.zosh.ecommerce.entities.*;
 import com.zosh.ecommerce.exception.ResourceNotFoundException;
-import com.zosh.ecommerce.repository.CartQuantityRepo;
-import com.zosh.ecommerce.repository.CartRepo;
-import com.zosh.ecommerce.repository.ProductRepo;
-import com.zosh.ecommerce.repository.UserRepo;
+import com.zosh.ecommerce.repository.*;
 import com.zosh.ecommerce.service.CartService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,6 +29,9 @@ public class CartServiceImpl implements CartService {
 
     @Autowired
     private ProductRepo productRepo;
+
+    @Autowired
+    private OrderRepo orderRepo;
 
     @Autowired
     private CartQuantityRepo cartQuantityRepo;
@@ -100,12 +95,20 @@ public class CartServiceImpl implements CartService {
         CartQuantity newCartQuantity = new CartQuantity();
         newCartQuantity.setCart(cart);
         newCartQuantity.setProduct(product);
-        newCartQuantity.setQuantity(Math.max(productQuantity, 1)); // Ensure at least 1
+        newCartQuantity.setQuantity(Math.max(productQuantity, 1));
+
+        System.out.println("Before Adding: Cart ID: " + cart.getCartId());
+        System.out.println("Current Cart Quantity List Size: " + cart.getCartQuantity().size());// Ensure at least 1
         cart.getCartQuantity().add(newCartQuantity);
+        System.out.println("After Adding: Cart ID: " + cart.getCartId());
+        System.out.println("Updated Cart Quantity List Size: " + cart.getCartQuantity().size());
+
 
         // Update cart's total quantity and total price
         cart.setTotalQuantity(cart.getTotalQuantity() + Math.max(productQuantity, 1));
         cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * Math.max(productQuantity, 1)));
+
+
 
         // Save new cartQuantity and updated cart
         cartQuantityRepo.save(newCartQuantity);
@@ -249,5 +252,52 @@ public class CartServiceImpl implements CartService {
         // Save the updated cart
         cartRepo.save(cart);
         System.out.println("Cart updated and saved successfully.");
+    }
+
+    @Transactional
+    public OrderDto checkout(Long userId) {
+        Cart cart = cartRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Cart not found for user: " + userId));
+
+        List<CartQuantity> cartQuantities = cart.getCartQuantity();
+        if (cartQuantities.isEmpty()) {
+            throw new RuntimeException("Cart is empty. Cannot proceed with checkout.");
+        }
+
+        double totalAmount = 0.0;
+        List<OrderItem> orderItems = new ArrayList<>();
+
+        // Process each product in the cart
+        for (CartQuantity cartQuantity : cartQuantities) {
+            Product product = cartQuantity.getProduct();
+            int quantity = cartQuantity.getQuantity();
+            double itemTotal = product.getPrice() * quantity;
+            totalAmount += itemTotal;
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setProductName(product.getTitle());
+            orderItem.setPrice(product.getPrice());
+            orderItem.setQuantity(quantity);
+            orderItems.add(orderItem);
+        }
+
+        // Create the Order entity
+        Order order = new Order();
+//        order.setOrderId(null);
+        order.setUser(cart.getUser());
+        order.setTotalAmount(totalAmount);
+        order.setOrderItems(orderItems);
+        order.setOrderDate(LocalDateTime.now());
+
+        // Save the order and clear the cart
+        orderRepo.save(order);
+        cartQuantities.forEach(cartQuantity -> cartQuantityRepo.delete(cartQuantity));
+        cart.getProducts().clear();  // If using ManyToMany for products
+
+        cart.setTotalQuantity(0);
+        cart.setTotalPrice(0.0);
+        cartRepo.save(cart);  // Persist the empty cart
+
+        return modelMapper.map(order, OrderDto.class);
     }
 }
