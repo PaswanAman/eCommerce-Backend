@@ -10,12 +10,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CartQuantityRepo extends JpaRepository<CartQuantity, Long> {
-    CartQuantity  findByCartAndProduct(Cart cart,Product product);
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM CartQuantity c WHERE c.id = ?1")
-    void deleteCartQuantityById(Long id);
+    Optional<CartQuantity>  findByCartAndProduct(Cart cart, Product product);
+//    @Modifying
+//    @Transactional
+//    @Query("DELETE FROM CartQuantity c WHERE c.id = ?1")
+//    void deleteCartQuantityById(Long id);
 
 }

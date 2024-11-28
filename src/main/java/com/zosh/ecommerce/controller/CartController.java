@@ -55,6 +55,7 @@ public class CartController {
 
     @DeleteMapping("/remove/{userId}/{productId}")
     public ResponseEntity<?> removeProductFromCart(@PathVariable Long userId, @PathVariable Long productId) {
+        logger.info("remove product from cart api called ");
         try {
              cartService.deleteProductFromCart(userId, productId);
             return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","delete product successful"));
