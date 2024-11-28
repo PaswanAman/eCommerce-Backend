@@ -12,8 +12,8 @@ import java.util.Optional;
 @Repository
 public interface OtpRepo extends JpaRepository<Otp,Long> {
 //    Optional<Otp> findByOtpCodeAndUser(String otpCode, User user);
-    int deleteByExpirationTimeBefore(LocalDateTime expirationTime);
-    Optional<Otp> findByOtpCode(String otpCode);
-    List<Otp> findAllByExpirationTimeBefore(LocalDateTime expirationTime);
-
+//    int deleteByExpirationTimeBefore(LocalDateTime expirationTime);
+    List<Otp> findByExpiryDateBefore(LocalDateTime expiryDate);
+    Otp findByOtpCode(String otpCode);
+//    Optional<Otp> findByOtpCode(String otpCode);
 }

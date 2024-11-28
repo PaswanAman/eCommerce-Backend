@@ -17,32 +17,19 @@ import java.util.List;
 public class OtpSchedular {
     @Autowired
     private OtpRepo otpRepo;
-
     @Autowired
     private UserRepo userRepo;
 
-    @Scheduled(cron = "0 * * * * *")
-    @Transactional
-    public void cleanExpiredOtps() {
+    @Scheduled(cron = "0 */1 * * * ?")
+    public void cleanupExpiredTokens() {
         LocalDateTime now = LocalDateTime.now();
+        List<Otp> expiredTokens = otpRepo.findByExpiryDateBefore(now);
 
-        // Fetch all expired OTPs
-        List<Otp> expiredOtps = otpRepo.findAllByExpirationTimeBefore(now);
-
-        for (Otp otp : expiredOtps) {
-            User user = otp.getUser();
-
-            // Delete the OTP entry
+        for (Otp otp : expiredTokens) {
             otpRepo.delete(otp);
-
-            // Delete the associated user if they are still disabled
-            if (!user.isEnabled()) {
-                userRepo.delete(user);
-                System.out.println("Deleted user with ID: " + user.getId());
-            }
+            User user = otp.getUser();
+            userRepo.delete(user);
         }
-
-        System.out.println("OTP cleanup completed at " + now);
     }
 
 

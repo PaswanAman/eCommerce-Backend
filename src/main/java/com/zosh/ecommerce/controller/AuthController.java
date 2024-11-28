@@ -5,6 +5,7 @@ import com.zosh.ecommerce.Dto.*;
 import com.zosh.ecommerce.config.JwtTokenHelper;
 import com.zosh.ecommerce.config.MessageConstants;
 import com.zosh.ecommerce.entities.Admin;
+import com.zosh.ecommerce.entities.Otp;
 import com.zosh.ecommerce.entities.Store;
 import com.zosh.ecommerce.entities.User;
 import com.zosh.ecommerce.exception.OtpNotFoundException;
@@ -18,32 +19,35 @@ import com.zosh.ecommerce.service.UserService;
 import com.zosh.ecommerce.serviceImpl.AdminUserDetailService;
 import com.zosh.ecommerce.serviceImpl.CustomUserDetailService;
 import com.zosh.ecommerce.serviceImpl.OtpService;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -180,86 +184,167 @@ public class AuthController {
 
     // For New User or Buyer
 
-    @PostMapping("/buyer/register")
-    public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto, @RequestParam("pictureFile") MultipartFile pictureFile, BindingResult bindingResult){
-        logger.info(" Register API called");
-        if (bindingResult.hasErrors()) {
-            List<String> errors = bindingResult.getFieldErrors().stream()
-                    .map(FieldError::getDefaultMessage)
-                    .collect(Collectors.toList());
-            return ResponseEntity.badRequest().body(errors);
-        }
-        Map<String, String> errorMap = new HashMap<>();
+//    @PostMapping("/buyer/register")
+//    public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto, @RequestParam("pictureFile") MultipartFile pictureFile, BindingResult bindingResult){
+//        logger.info(" Register API called");
+//        if (bindingResult.hasErrors()) {
+//            List<String> errors = bindingResult.getFieldErrors().stream()
+//                    .map(FieldError::getDefaultMessage)
+//                    .collect(Collectors.toList());
+//            return ResponseEntity.badRequest().body(errors);
+//        }
+//        Map<String, String> errorMap = new HashMap<>();
+//
+//        if (userDto.getFirstName() == null || userDto.getFirstName().equals("")){
+//
+//            errorMap.put("firstName", MessageConstants.MESSAGE_INVALIDFIRSTNAME);
+//        }
+//
+//        if (userDto.getLastName() == null || userDto.getLastName().equals("")) {
+//
+//            errorMap.put("lastName", MessageConstants.MESSAGE_INVALIDLASTNAME);
+//        }
+//        if (userDto.getMobileNumber() == null || userDto.getMobileNumber().equals("") || userDto.getMobileNumber().length() != 10) {
+//            errorMap.put("mobileNumber", MessageConstants.MESSAGE_INVALIDMOBILENUMBER);
+//        }
+//        if (userDto.getPassword() == null || userDto.getPassword().equals("") || userDto.getPassword().length() < 8 || userDto.getPassword().length()>20) {
+//            errorMap.put("password", MessageConstants.MESSAGE_INVALIDPASSWORD);
+//        }
+//
+//        if (!errorMap.isEmpty()) {
+//            logger.info("ErrorMap is empty");
+//            System.out.println(errorMap);
+//            return ResponseEntity.badRequest().body(errorMap);
+//        }
+//
+//        if (userService.existByMobileNumber(userDto.getMobileNumber())) {
+//            String errorMessage = "Mobile number already exists";
+//            Map<String, String> response = new HashMap<>();
+//            logger.info("Mobile number already exists");
+//            response.put("status","error");
+//            response.put("message", errorMessage);
+//            return ResponseEntity.badRequest().body(response);
+//        }
+//
+//        if (userService.existByEmail(userDto.getEmail())){
+//            String errorMessage = "Email  already exists";
+//            Map<String, String> response = new HashMap<>();
+//            logger.info("Email is already exists");
+//            response.put("status","error");
+//            response.put("message", errorMessage);
+//            return ResponseEntity.badRequest().body(response);
+//        }
+//
+//        if (!pictureFile.isEmpty()){
+//            try {
+//                String pictureFileName = fileService.savePicture(pictureFile);
+//                userDto.setPicture(pictureFileName);
+//                logger.info("Picture is set ");
+//            }  catch (IOException e) {
+//                logger.info("picture set error");
+//                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+//            }
+//        }
+//
+//        try {
+//            UserDto registeredUser = userService.registerNewBuyer(userDto);
+//            System.out.println("mobileNumber: "+userDto.getMobileNumber());
+//            logger.info("User register successful");
+//            return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
+//        } catch (IllegalArgumentException e) {
+//            logger.info("User register error");
+//            return new ResponseEntity<>(HttpStatus.CONFLICT);
+//        }
+//
+//    }
+@PostMapping("/buyer/register")
+public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto,
+                                          @RequestParam("pictureFile") MultipartFile pictureFile,
+                                          BindingResult bindingResult) {
+    logger.info("Register API called");
 
-        if (userDto.getFirstName() == null || userDto.getFirstName().equals("")){
-
-            errorMap.put("firstName", MessageConstants.MESSAGE_INVALIDFIRSTNAME);
-        }
-
-        if (userDto.getLastName() == null || userDto.getLastName().equals("")) {
-
-            errorMap.put("lastName", MessageConstants.MESSAGE_INVALIDLASTNAME);
-        }
-        if (userDto.getMobileNumber() == null || userDto.getMobileNumber().equals("") || userDto.getMobileNumber().length() != 10) {
-            errorMap.put("mobileNumber", MessageConstants.MESSAGE_INVALIDMOBILENUMBER);
-        }
-        if (userDto.getPassword() == null || userDto.getPassword().equals("") || userDto.getPassword().length() < 8 || userDto.getPassword().length()>20) {
-            errorMap.put("password", MessageConstants.MESSAGE_INVALIDPASSWORD);
-        }
-
-        if (!errorMap.isEmpty()) {
-            logger.info("ErrorMap is empty");
-            System.out.println(errorMap);
-            return ResponseEntity.badRequest().body(errorMap);
-        }
-
-
-
-        if (userService.existByMobileNumber(userDto.getMobileNumber())) {
-            String errorMessage = "Mobile number already exists";
-            Map<String, String> response = new HashMap<>();
-            logger.info("Mobile number already exists");
-            response.put("status","error");
-            response.put("message", errorMessage);
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        if (userService.existByEmail(userDto.getEmail())){
-            String errorMessage = "Email  already exists";
-            Map<String, String> response = new HashMap<>();
-            logger.info("Email is already exists");
-            response.put("status","error");
-            response.put("message", errorMessage);
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        if (!pictureFile.isEmpty()){
-            try {
-                String pictureFileName = fileService.savePicture(pictureFile);
-                userDto.setPicture(pictureFileName);
-                logger.info("Picture is set ");
-            }  catch (IOException e) {
-                logger.info("picture set error");
-                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
-        }
-
-        try {
-            UserDto registeredUser = userService.registerNewBuyer(userDto);
-            System.out.println("mobileNumber: "+userDto.getMobileNumber());
-            logger.info("User register successful");
-            return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            logger.info("User register error");
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.CONFLICT);
-        }
-
+    if (bindingResult.hasErrors()) {
+        List<String> errors = bindingResult.getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.toList());
+        return ResponseEntity.badRequest().body(errors);
     }
 
+    Map<String, String> errorMap = new HashMap<>();
+    if (userDto.getFirstName() == null || userDto.getFirstName().isEmpty()) {
+        errorMap.put("firstName", MessageConstants.MESSAGE_INVALIDFIRSTNAME);
+    }
+    if (userDto.getLastName() == null || userDto.getLastName().isEmpty()) {
+        errorMap.put("lastName", MessageConstants.MESSAGE_INVALIDLASTNAME);
+    }
+    if (userDto.getMobileNumber() == null || userDto.getMobileNumber().isEmpty() || userDto.getMobileNumber().length() != 10) {
+        errorMap.put("mobileNumber", MessageConstants.MESSAGE_INVALIDMOBILENUMBER);
+    }
+    if (userDto.getPassword() == null || userDto.getPassword().isEmpty() || userDto.getPassword().length() < 8 || userDto.getPassword().length() > 20) {
+        errorMap.put("password", MessageConstants.MESSAGE_INVALIDPASSWORD);
+    }
+    if (!errorMap.isEmpty()) {
+        return ResponseEntity.badRequest().body(errorMap);
+    }
 
+    if (userService.existByMobileNumber(userDto.getMobileNumber())) {
+        return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Mobile number already exists"));
+    }
 
+    if (userService.existByEmail(userDto.getEmail())) {
+        return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Email already exists"));
+    }
 
+    if (!pictureFile.isEmpty()) {
+        try {
+            String pictureFileName = fileService.savePicture(pictureFile);
+            userDto.setPicture(pictureFileName);
+
+            String imagePath = fileService.uploaddir() + "/" + pictureFileName;
+
+            sendImageToPythonApi(imagePath, userDto.getEmail());
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    try {
+        UserDto registeredUser = userService.registerNewBuyer(userDto);
+        return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
+    } catch (IllegalArgumentException e) {
+        return new ResponseEntity<>(HttpStatus.CONFLICT);
+    }
+}
+
+    public void sendImageToPythonApi(String imagePath, String email) {
+        try {
+            File imageFile = new File(imagePath);
+
+            if (!imageFile.exists()) {
+                throw new FileNotFoundException("Image file not found: " + imagePath);
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("files", new FileSystemResource(imageFile));
+            body.add("email", email);
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+            RestTemplate restTemplate = new RestTemplate();
+            String pythonApiUrl = "http://3.110.123.38:8000/upload/";
+            ResponseEntity<String> response = restTemplate.postForEntity(pythonApiUrl, requestEntity, String.class);
+
+            System.out.println("Python API response: " + response.getBody());
+
+        } catch (Exception e) {
+            System.err.println("Error sending image to Python API");
+            e.printStackTrace();
+        }
+    }
 
     // For Seller
 
@@ -419,53 +504,180 @@ public class AuthController {
     }
 
 
-    @PostMapping("/buyer/login")
-    public ResponseEntity<?> buyerLogin(@RequestBody JwtAuthRequest request){
-        logger.info("Buyer  Login API called ");
-        Optional<User> user = userRepo.findByEmail(request.getEmail());
-        UserResponse response = new UserResponse();
-        if (user.isPresent()){
-            User user1 = user.get();
-            System.out.println(user1.getEmail());
-            System.out.println(user1.getRole());
-            if (!"ROLE_BUYER".equalsIgnoreCase(user1.getRole())) {
-                logger.info("User does not have buyer role");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("status", "error", "message", "Only buyers are allowed to log in."));
-            }
-            try {
-                Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
+//    @PostMapping("/buyer/login")
+//    public ResponseEntity<?> buyerLogin(@RequestBody JwtAuthRequest request){
+//        logger.info("Buyer  Login API called ");
+//        Optional<User> user = userRepo.findByEmail(request.getEmail());
+//        UserResponse response = new UserResponse();
+//        if (user.isPresent()){
+//            User user1 = user.get();
+//            System.out.println(user1.getEmail());
+//            System.out.println(user1.getRole());
+//            if (!"ROLE_BUYER".equalsIgnoreCase(user1.getRole())) {
+//                logger.info("User does not have buyer role");
+//                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+//                        .body(Map.of("status", "error", "message", "Only buyers are allowed to log in."));
+//            }
+//            try {
+//                Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
+//
+//
+//                if (authentication.isAuthenticated()){
+//
+//                    response.setToken(jwtTokenHelper.generateToken(user.get().getEmail(), "buyer"));
+//                    response.setMessage("Login Successful");
+//                    response.setFirstName(user1.getFirstName());
+//                    response.setLastName(user1.getLastName());
+//                    response.setEmail(user1.getEmail());
+//                    response.setUserId(user1.getId());
+//                    response.setRole(user1.getRole());
+//                    response.setPictureUrl(baseurl+"/api/v1/auth/picture/"+user1.getPicture());
+//                    logger.info("Login Successful");
+//                    return new ResponseEntity<>(response, HttpStatus.OK);
+//                } else {
+//                    logger.info("Invalid email or password");
+//                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                            .body(Map.of("status", "error", "message","Invalid Email or Passowrd. Please try again."));
+//                }
+//            }  catch (AuthenticationException e) {
+//                logger.info("Invalid email or Password!");
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                        .body(Map.of("status", "error", "message", "Invalid email or password. Please try again."));
+//            }
+//        } else {
+//            logger.info("Buyer not found");
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//                    .body(Map.of("status", "error", "message", "User not found"));
+//        }
+//
+//    }
+@PostMapping("/buyer/login")
+public ResponseEntity<?> buyerLogin(
+        @ModelAttribute JwtAuthRequest request,
+        @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
 
+    logger.info("Buyer Login API called");
+    if (imageFile != null && !imageFile.isEmpty()) {
+        try {
+            String matchedEmail = sendImageToPythonApiLogin(imageFile);
 
-                if (authentication.isAuthenticated()){
-
-                    response.setToken(jwtTokenHelper.generateToken(user.get().getEmail(), "buyer"));
-                    response.setMessage("Login Successful");
-                    response.setFirstName(user1.getFirstName());
-                    response.setLastName(user1.getLastName());
-                    response.setEmail(user1.getEmail());
-                    response.setUserId(user1.getId());
-                    response.setRole(user1.getRole());
-                    response.setPictureUrl(baseurl+"/api/v1/auth/picture/"+user1.getPicture());
-                    logger.info("Login Successful");
-                    return new ResponseEntity<>(response, HttpStatus.OK);
+            if (matchedEmail != null) {
+                Optional<User> user = userRepo.findByEmail(matchedEmail);
+                if (user.isPresent()) {
+                    return generateLoginResponse(user.get());
                 } else {
-                    logger.info("Invalid email or password");
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .body(Map.of("status", "error", "message","Invalid Email or Passowrd. Please try again."));
+                    logger.warn("No user found for matched_email: " + matchedEmail);
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(Map.of("status", "error", "message", "User not found for matched image"));
                 }
-            }  catch (AuthenticationException e) {
-                logger.info("Invalid email or Password!");
+            } else {
+                logger.warn("Face not recognized in the provided image");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Invalid email or password. Please try again."));
+                        .body(Map.of("status", "error", "message", "Face not recognized. Please try again."));
             }
-        } else {
-            logger.info("Buyer not found");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("status", "error", "message", "User not found"));
+        } catch (Exception e) {
+            logger.error("Error during image-based login: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Error processing image login"));
+        }
+    }
+
+    if (request.getEmail() == null || request.getPassword() == null) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("status", "error", "message", "Email and password are required for login"));
+    }
+
+    Optional<User> user = userRepo.findByEmail(request.getEmail());
+    if (user.isPresent()) {
+        User user1 = user.get();
+
+        if (!"ROLE_BUYER".equalsIgnoreCase(user1.getRole())) {
+            logger.info("User does not have buyer role");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("status", "error", "message", "Only buyers are allowed to log in."));
         }
 
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+
+            if (authentication.isAuthenticated()) {
+                return generateLoginResponse(user1);
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("status", "error", "message", "Invalid email or password"));
+            }
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("status", "error", "message", "Invalid email or password"));
+        }
+    } else {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("status", "error", "message", "User not found"));
     }
+}
+
+    private String sendImageToPythonApiLogin(MultipartFile imageFile) throws IOException {
+        File tempFile = convertToFile(imageFile);
+
+        try {
+            logger.info("Temporary file created: " + tempFile.getAbsolutePath());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("files", new FileSystemResource(tempFile));
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+            RestTemplate restTemplate = new RestTemplate();
+            String pythonApiUrl = "http://3.110.123.38:8000/upload/";
+            ResponseEntity<Map> response = restTemplate.postForEntity(pythonApiUrl, requestEntity, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> pythonResponse = response.getBody();
+                List<Map<String, String>> results = (List<Map<String, String>>) pythonResponse.get("results");
+
+                if (!results.isEmpty()) {
+                    return results.get(0).get("matched_email");
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error while sending image to Python API: ", e);
+            throw new RuntimeException("Failed to process image for login");
+        } finally {
+            if (tempFile.exists() && !tempFile.delete()) {
+                logger.warn("Failed to delete temporary file: " + tempFile.getAbsolutePath());
+            }
+        }
+
+        return null;
+    }
+
+    private File convertToFile(MultipartFile file) throws IOException {
+        File convFile = File.createTempFile("upload", file.getOriginalFilename());
+        try (FileOutputStream fos = new FileOutputStream(convFile)) {
+            fos.write(file.getBytes());
+        }
+        return convFile;
+    }
+
+
+    private ResponseEntity<UserResponse> generateLoginResponse(User user) {
+        UserResponse response = new UserResponse();
+        response.setToken(jwtTokenHelper.generateToken(user.getEmail(), "buyer"));
+        response.setMessage("Login Successful");
+        response.setFirstName(user.getFirstName());
+        response.setLastName(user.getLastName());
+        response.setEmail(user.getEmail());
+        response.setUserId(user.getId());
+        response.setRole(user.getRole());
+        response.setPictureUrl(baseurl + "/api/v1/auth/picture/" + user.getPicture());
+        logger.info("Login Successful");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
 
     @PutMapping ("/changePassword")
     public ResponseEntity<?> changePassword(@RequestHeader("Authorization") String userToken, @RequestBody ChangePassword changePassword){
@@ -516,18 +728,21 @@ public class AuthController {
 
     @PostMapping("/verifyOtp")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpVerificationRequest request) {
-        logger.info("verify otp api called");
+
         try {
-            otpService.verifyOtp(request.getOtpCode());
+            Otp otp = otpService.getToken(request.getOtpCode());
+            if (otp == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("status","error","message","OTP not found or expired"));
+            }
+            User user = otp.getUser();
+            user.setEnabled(true);
+            userRepo.save(user);
+
+            otpService.deleteToken(otp);
             return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","Otp verify successfully"));
-        } catch (OtpNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("status","error","message","OTP not found or expired: " + e.getMessage()));
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("status","error","message","User not found: " + e.getMessage()));
+
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred: " + e.getMessage());
         }

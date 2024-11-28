@@ -1,5 +1,6 @@
 package com.zosh.ecommerce.entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,14 +20,15 @@ public class Otp {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    @OneToOne(targetEntity = User.class, fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     private String otpCode;
-    private LocalDateTime expirationTime;
-
-    public boolean isValid() {
-        return LocalDateTime.now().isBefore(expirationTime);  // Check if the current time is before the expiration time
-    }
+    @Column(nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+    private LocalDateTime createdDate;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+    @Column(nullable = false)
+    private LocalDateTime expiryDate;
 }

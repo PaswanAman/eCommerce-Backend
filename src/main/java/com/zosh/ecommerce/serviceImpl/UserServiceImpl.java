@@ -51,6 +51,8 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private OtpService otpService;
+    @Autowired
+    private EmailService emailService;
 
     @Value("${picture.base-url}")
     private String baseurl;
@@ -85,7 +87,10 @@ public class UserServiceImpl implements UserService {
 
 
         User newUser = this.userRepository.save(user);
-        otpService.generateOtp(newUser);
+        String otp = String.format("%06d", (int) (Math.random() * 1000000));
+        otpService.createOtp(newUser, otp);
+
+        emailService.sendOtp(newUser.getEmail(), otp);
         return this.modelMapper.map(newUser, UserDto.class);
     }
 
@@ -112,10 +117,13 @@ public class UserServiceImpl implements UserService {
 
 
 
-        User newBuyer = this.userRepository.save(user);
-        otpService.generateOtp(newBuyer);
+        User newUser = this.userRepository.save(user);
+        String otp = String.format("%06d", (int) (Math.random() * 1000000));
+        otpService.createOtp(newUser, otp);
 
-        return this.modelMapper.map(newBuyer, SellerDto.class);
+        emailService.sendOtp(newUser.getEmail(), otp);
+
+        return this.modelMapper.map(newUser, SellerDto.class);
 
     }
 
@@ -242,6 +250,10 @@ public class UserServiceImpl implements UserService {
         return passwordEncoder.matches(oldPassword, user.getPassword());
     }
 
-
+    public List<UserDto> findAllUsers() {
+        return userRepository.findAll().stream()
+                .map(user -> modelMapper.map(user, UserDto.class))
+                .collect(Collectors.toList());
+    }
 
 }
