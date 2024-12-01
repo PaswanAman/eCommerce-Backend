@@ -28,7 +28,14 @@ public interface CartQuantityRepo extends JpaRepository<CartQuantity, Long> {
     @Query("UPDATE CartQuantity cq SET cq.quantity = :quantity WHERE cq.cart.cartId = :cartId AND cq.product.productId = :productId")
     int updateCartQuantity(@Param("cartId") Long cartId, @Param("productId") Long productId, @Param("quantity") Integer quantity);
 
+//    @Modifying
+//    @Query("INSERT INTO CartQuantity (cart, product, quantity) VALUES (:cart, :product, :quantity)")
+//    void insertCartQuantity(@Param("cart") Cart cart, @Param("product") Product product, @Param("quantity") Integer quantity);
+
+//    @Query("SELECT cq FROM CartQuantity cq WHERE cq.cart.cartId = :cartId AND cq.product.id = :productId")
+//    Optional<CartQuantity> findCartQuantity(@Param("cartId") Long cartId, @Param("productId") Long productId);
+
     @Modifying
-    @Query("INSERT INTO CartQuantity (cart, product, quantity) VALUES (:cart, :product, :quantity)")
-    void insertCartQuantity(@Param("cart") Cart cart, @Param("product") Product product, @Param("quantity") Integer quantity);
+    @Query("DELETE FROM CartQuantity cq WHERE cq.cart.cartId = :cartId AND cq.product.productId = :productId")
+    void deleteCartQuantity(@Param("cartId") Long cartId, @Param("productId") Long productId);
 }

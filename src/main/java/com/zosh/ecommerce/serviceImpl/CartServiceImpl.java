@@ -60,31 +60,39 @@ public class CartServiceImpl implements CartService {
         if (optionalCartQuantity.isPresent()) {
             // Product already in cart, update quantity
             CartQuantity existingCartQuantity = optionalCartQuantity.get();
-            int newQuantity = existingCartQuantity.getQuantity() + productQuantity;
-            newQuantity = Math.max(newQuantity, 1);  // Ensure at least 1
+            int currentQuantity = existingCartQuantity.getQuantity();
+            int newQuantity = currentQuantity + productQuantity;
 
-            // Update the quantity in the cart
-            int rowsUpdated = cartQuantityRepo.updateCartQuantity(cart.getCartId(), productId, newQuantity);
+            if (newQuantity > 0) {
+                // Update the quantity in the cart
+                int rowsUpdated = cartQuantityRepo.updateCartQuantity(cart.getCartId(), productId, newQuantity);
 
-            if (rowsUpdated > 0) {
-                cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
-                cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
-                cartRepo.save(cart);  // Save the updated cart
+                if (rowsUpdated > 0) {
+                    cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
+                    cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
+                    cartRepo.save(cart);  // Save the updated cart
+                }
+            } else {
+                throw new IllegalArgumentException("Invalid quantity. Total quantity cannot be less than 1.");
             }
         } else {
             // If product doesn't exist, add new CartQuantity
-            CartQuantity newCartQuantity = new CartQuantity();
-            newCartQuantity.setCart(cart);
-            newCartQuantity.setProduct(product);
-            newCartQuantity.setQuantity(Math.max(productQuantity, 1));
+            if (productQuantity > 0) {
+                CartQuantity newCartQuantity = new CartQuantity();
+                newCartQuantity.setCart(cart);
+                newCartQuantity.setProduct(product);
+                newCartQuantity.setQuantity(productQuantity);
 
-            // Save new CartQuantity
-            cartQuantityRepo.save(newCartQuantity);
+                // Save new CartQuantity
+                cartQuantityRepo.save(newCartQuantity);
 
-            // Update cart total
-            cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
-            cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
-            cartRepo.save(cart);  // Save the updated cart
+                // Update cart total
+                cart.setTotalQuantity(cart.getTotalQuantity() + productQuantity);
+                cart.setTotalPrice(cart.getTotalPrice() + (product.getPrice() * productQuantity));
+                cartRepo.save(cart);  // Save the updated cart
+            } else {
+                throw new IllegalArgumentException("Product quantity must be greater than zero.");
+            }
         }
 
         // Create DTO for response
@@ -97,6 +105,56 @@ public class CartServiceImpl implements CartService {
 
         return cartDto;
     }
+
+    @Transactional
+    public RemoveProductFromCartDto removeProductFromCart(Long userId, Long productId, Integer removeQuantity) {
+
+        // Fetch Cart for the User
+        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
+                new ResourceNotFoundException("Cart not found", "UserId", userId));
+
+        // Find the CartQuantity entry for the specified product
+        CartQuantity cartQuantity = cartQuantityRepo.findCartQuantity(cart.getCartId(), productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found in cart", "ProductId", productId));
+
+        int currentQuantity = cartQuantity.getQuantity();
+        double productPrice = cartQuantity.getProduct().getPrice();
+
+        if (removeQuantity >= currentQuantity) {
+            // Remove product from cart using custom query
+            cartQuantityRepo.deleteCartQuantity(cart.getCartId(), productId);
+
+            // Update cart total quantity and price
+            cart.setTotalQuantity(cart.getTotalQuantity() - currentQuantity);
+            cart.setTotalPrice(cart.getTotalPrice() - (productPrice * currentQuantity));
+        } else {
+            // Update the cart quantity if removal is less than current quantity
+            int newQuantity = currentQuantity - removeQuantity;
+            cartQuantity.setQuantity(newQuantity);
+            cartQuantityRepo.save(cartQuantity);
+
+            // Update cart total quantity and price
+            cart.setTotalQuantity(cart.getTotalQuantity() - removeQuantity);
+            cart.setTotalPrice(cart.getTotalPrice() - (productPrice * removeQuantity));
+        }
+
+        cartRepo.save(cart);  // Save the updated cart
+
+        // Create DTO for response
+        RemoveProductFromCartDto cartDto = new RemoveProductFromCartDto();
+        cartDto.setCartId(cart.getCartId());
+        cartDto.setUserId(userId);
+        cartDto.setProductId(productId);
+        cartDto.setRemainingQuantity(removeQuantity >= currentQuantity ? 0 : currentQuantity - removeQuantity);
+        cartDto.setTotalQuantity(cart.getTotalQuantity());
+        cartDto.setTotalPrice(cart.getTotalPrice());
+
+        return cartDto;
+    }
+
+
+
+
 
 
     @Override
@@ -175,57 +233,57 @@ public class CartServiceImpl implements CartService {
 //        return this.modelMapper.map(cartUser, CartDto.class);
 //    }
 
-    @Transactional
-    @Override
-    public void deleteProductFromCart(Long userId, Long productId) {
-        // Debug input values
-        System.out.println("Deleting product with ID: " + productId + " from cart for user with ID: " + userId);
-
-        // Fetch the cart associated with the user
-        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() -> {
-            System.out.println("Cart not found for user with ID: " + userId);
-            return new ResourceNotFoundException("Cart not found for user", "Id", userId);
-        });
-        System.out.println("Cart found: " + cart);
-
-        // Fetch the product by its ID
-        Product product = productRepo.findById(productId).orElseThrow(() -> {
-            System.out.println("Product not found with ID: " + productId);
-            return new ResourceNotFoundException("Product not found", "Id", productId);
-        });
-        System.out.println("Product found: " + product);
-
-        // Find the CartQuantity entry for the given product
-        CartQuantity cartQuantity = cartQuantityRepo.findByCartAndProduct(cart, product).orElseThrow(() -> {
-            System.out.println("Product with ID " + productId + " not found in cart for user " + userId);
-            return new ResourceNotFoundException("Product not found in cart", "Product ID", productId);
-        });
-        System.out.println("CartQuantity found: " + cartQuantity);
-
-        // Calculate the quantity and price to remove
-        int quantityToRemove = cartQuantity.getQuantity();
-        double priceToDeduct = product.getPrice() * quantityToRemove;
-        System.out.println("Quantity to remove: " + quantityToRemove);
-        System.out.println("Price to deduct: " + priceToDeduct);
-
-        // Update cart's total quantity and total price
-        cart.setTotalQuantity(cart.getTotalQuantity() - quantityToRemove);
-        cart.setTotalPrice(cart.getTotalPrice() - priceToDeduct);
-
-        // Ensure cart totals don't go below zero
-        cart.setTotalQuantity(Math.max(cart.getTotalQuantity(), 0));
-        cart.setTotalPrice(Math.max(cart.getTotalPrice(), 0));
-
-        System.out.println("Updated cart totals - Total Quantity: " + cart.getTotalQuantity() + ", Total Price: " + cart.getTotalPrice());
-
-        // Delete the CartQuantity entry
-        cartQuantityRepo.delete(cartQuantity);
-        System.out.println("Deleted CartQuantity entry for product ID: " + productId);
-
-        // Save the updated cart
-        cartRepo.save(cart);
-        System.out.println("Cart updated and saved successfully.");
-    }
+//    @Transactional
+//    @Override
+//    public void deleteProductFromCart(Long userId, Long productId) {
+//        // Debug input values
+//        System.out.println("Deleting product with ID: " + productId + " from cart for user with ID: " + userId);
+//
+//        // Fetch the cart associated with the user
+//        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() -> {
+//            System.out.println("Cart not found for user with ID: " + userId);
+//            return new ResourceNotFoundException("Cart not found for user", "Id", userId);
+//        });
+//        System.out.println("Cart found: " + cart);
+//
+//        // Fetch the product by its ID
+//        Product product = productRepo.findById(productId).orElseThrow(() -> {
+//            System.out.println("Product not found with ID: " + productId);
+//            return new ResourceNotFoundException("Product not found", "Id", productId);
+//        });
+//        System.out.println("Product found: " + product);
+//
+//        // Find the CartQuantity entry for the given product
+//        CartQuantity cartQuantity = cartQuantityRepo.findByCartAndProduct(cart, product).orElseThrow(() -> {
+//            System.out.println("Product with ID " + productId + " not found in cart for user " + userId);
+//            return new ResourceNotFoundException("Product not found in cart", "Product ID", productId);
+//        });
+//        System.out.println("CartQuantity found: " + cartQuantity);
+//
+//        // Calculate the quantity and price to remove
+//        int quantityToRemove = cartQuantity.getQuantity();
+//        double priceToDeduct = product.getPrice() * quantityToRemove;
+//        System.out.println("Quantity to remove: " + quantityToRemove);
+//        System.out.println("Price to deduct: " + priceToDeduct);
+//
+//        // Update cart's total quantity and total price
+//        cart.setTotalQuantity(cart.getTotalQuantity() - quantityToRemove);
+//        cart.setTotalPrice(cart.getTotalPrice() - priceToDeduct);
+//
+//        // Ensure cart totals don't go below zero
+//        cart.setTotalQuantity(Math.max(cart.getTotalQuantity(), 0));
+//        cart.setTotalPrice(Math.max(cart.getTotalPrice(), 0));
+//
+//        System.out.println("Updated cart totals - Total Quantity: " + cart.getTotalQuantity() + ", Total Price: " + cart.getTotalPrice());
+//
+//        // Delete the CartQuantity entry
+//        cartQuantityRepo.delete(cartQuantity);
+//        System.out.println("Deleted CartQuantity entry for product ID: " + productId);
+//
+//        // Save the updated cart
+//        cartRepo.save(cart);
+//        System.out.println("Cart updated and saved successfully.");
+//    }
 
     @Transactional
     public OrderDto checkout(Long userId) {
