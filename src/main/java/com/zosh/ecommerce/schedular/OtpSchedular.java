@@ -31,6 +31,4 @@ public class OtpSchedular {
             userRepo.delete(user);
         }
     }
-
-
 }

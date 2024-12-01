@@ -4,13 +4,11 @@ package com.zosh.ecommerce.controller;
 import com.zosh.ecommerce.Dto.*;
 import com.zosh.ecommerce.config.JwtTokenHelper;
 import com.zosh.ecommerce.config.MessageConstants;
-import com.zosh.ecommerce.entities.Admin;
-import com.zosh.ecommerce.entities.Otp;
-import com.zosh.ecommerce.entities.Store;
-import com.zosh.ecommerce.entities.User;
+import com.zosh.ecommerce.entities.*;
 import com.zosh.ecommerce.exception.OtpNotFoundException;
 import com.zosh.ecommerce.exception.UserNotFoundException;
 import com.zosh.ecommerce.repository.AdminRepo;
+import com.zosh.ecommerce.repository.PredictionRepo;
 import com.zosh.ecommerce.repository.StoreRepo;
 import com.zosh.ecommerce.repository.UserRepo;
 import com.zosh.ecommerce.service.AdminService;
@@ -96,7 +94,8 @@ public class AuthController {
     private FileService fileService;
     @Value("${picture.base-url}")
     private String baseurl;
-
+    @Autowired
+    private PredictionRepo predictionRepo;
     private Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
@@ -257,6 +256,66 @@ public class AuthController {
 //        }
 //
 //    }
+
+//@PostMapping("/buyer/register")
+//public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto,
+//                                          @RequestParam("pictureFile") MultipartFile pictureFile,
+//                                          BindingResult bindingResult) {
+//    logger.info("Register API called");
+//
+//    if (bindingResult.hasErrors()) {
+//        List<String> errors = bindingResult.getFieldErrors().stream()
+//                .map(FieldError::getDefaultMessage)
+//                .collect(Collectors.toList());
+//        return ResponseEntity.badRequest().body(errors);
+//    }
+//
+//    Map<String, String> errorMap = new HashMap<>();
+//    if (userDto.getFirstName() == null || userDto.getFirstName().isEmpty()) {
+//        errorMap.put("firstName", MessageConstants.MESSAGE_INVALIDFIRSTNAME);
+//    }
+//    if (userDto.getLastName() == null || userDto.getLastName().isEmpty()) {
+//        errorMap.put("lastName", MessageConstants.MESSAGE_INVALIDLASTNAME);
+//    }
+//    if (userDto.getMobileNumber() == null || userDto.getMobileNumber().isEmpty() || userDto.getMobileNumber().length() != 10) {
+//        errorMap.put("mobileNumber", MessageConstants.MESSAGE_INVALIDMOBILENUMBER);
+//    }
+//    if (userDto.getPassword() == null || userDto.getPassword().isEmpty() || userDto.getPassword().length() < 8 || userDto.getPassword().length() > 20) {
+//        errorMap.put("password", MessageConstants.MESSAGE_INVALIDPASSWORD);
+//    }
+//    if (!errorMap.isEmpty()) {
+//        return ResponseEntity.badRequest().body(errorMap);
+//    }
+//
+//    if (userService.existByMobileNumber(userDto.getMobileNumber())) {
+//        return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Mobile number already exists"));
+//    }
+//
+//    if (userService.existByEmail(userDto.getEmail())) {
+//        return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Email already exists"));
+//    }
+//
+//    if (!pictureFile.isEmpty()) {
+//        try {
+//            String pictureFileName = fileService.savePicture(pictureFile);
+//            userDto.setPicture(pictureFileName);
+//
+//            String imagePath = fileService.uploaddir() + "/" + pictureFileName;
+//
+//            sendImageToPythonApi(imagePath, userDto.getEmail());
+//
+//        } catch (IOException e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+//        }
+//    }
+//
+//    try {
+//        UserDto registeredUser = userService.registerNewBuyer(userDto);
+//        return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
+//    } catch (IllegalArgumentException e) {
+//        return new ResponseEntity<>(HttpStatus.CONFLICT);
+//    }
+//}
 @PostMapping("/buyer/register")
 public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto,
                                           @RequestParam("pictureFile") MultipartFile pictureFile,
@@ -295,12 +354,14 @@ public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto
         return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Email already exists"));
     }
 
+    String imagePath = null;
+
     if (!pictureFile.isEmpty()) {
         try {
             String pictureFileName = fileService.savePicture(pictureFile);
             userDto.setPicture(pictureFileName);
 
-            String imagePath = fileService.uploaddir() + "/" + pictureFileName;
+            imagePath = fileService.uploaddir() + "/" + pictureFileName;
 
             sendImageToPythonApi(imagePath, userDto.getEmail());
 
@@ -308,6 +369,24 @@ public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    if (imagePath != null) {
+        Predictions currentPrediction = predictionRepo.findByFilePath(userDto.getPicture());
+        if (currentPrediction != null) {
+            int personId = currentPrediction.getPersonId();
+            List<Predictions> predictionsList = predictionRepo.findByPersonId(personId);
+            long countWithEmail = predictionsList.stream()
+                    .filter(p -> p.getEmail() != null && !p.getEmail().isEmpty())
+                    .count();
+            if (countWithEmail > 1) {
+                predictionRepo.deleteById(currentPrediction.getId());
+
+                return ResponseEntity.badRequest()
+                        .body(Map.of("status", "error", "message", "Person is already registered with a different email."));
+            }
+        }
+    }
+
 
     try {
         UserDto registeredUser = userService.registerNewBuyer(userDto);
@@ -566,12 +645,17 @@ public ResponseEntity<?> buyerLogin(
                 if (user.isPresent()) {
                     return generateLoginResponse(user.get());
                 } else {
+
                     logger.warn("No user found for matched_email: " + matchedEmail);
                     return ResponseEntity.status(HttpStatus.NOT_FOUND)
                             .body(Map.of("status", "error", "message", "User not found for matched image"));
                 }
             } else {
                 logger.warn("Face not recognized in the provided image");
+                String fileName = imageFile.getOriginalFilename();
+                Predictions predictions = predictionRepo.findByFilePath(fileName);
+                predictionRepo.deleteById(predictions.getId());
+
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("status", "error", "message", "Face not recognized. Please try again."));
             }
@@ -656,12 +740,23 @@ public ResponseEntity<?> buyerLogin(
     }
 
     private File convertToFile(MultipartFile file) throws IOException {
-        File convFile = File.createTempFile("upload", file.getOriginalFilename());
+        String tempDir = System.getProperty("java.io.tmpdir");
+
+        File convFile = new File(tempDir, file.getOriginalFilename());
+
+
+        if (convFile.exists()) {
+            convFile.delete();
+        }
+
+        // Write the content to the file
         try (FileOutputStream fos = new FileOutputStream(convFile)) {
             fos.write(file.getBytes());
         }
+
         return convFile;
     }
+
 
 
     private ResponseEntity<UserResponse> generateLoginResponse(User user) {
