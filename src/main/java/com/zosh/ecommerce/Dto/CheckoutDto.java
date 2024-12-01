@@ -16,6 +16,6 @@ public class CheckoutDto {
     private Long cartId;
     private Long userId;
     private List<CheckoutProductDto> products;
-    private double totalPrice;
-    private String message;
+    private double totalPriceForCheckout;
+//    private String message;
 }

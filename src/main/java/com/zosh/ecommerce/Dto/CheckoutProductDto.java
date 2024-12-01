@@ -10,6 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CheckoutProductDto {
+    private Long productId;
     private String productName;
     private int quantity;
     private double unitPrice;

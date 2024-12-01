@@ -18,6 +18,7 @@ public class CheckoutItem {
     @ManyToOne
     @JoinColumn(name = "checkout_id")
     private CheckOut checkout;
+    private Long productId;
 
     private String productName;
     private int quantity;

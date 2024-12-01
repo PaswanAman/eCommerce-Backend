@@ -312,6 +312,7 @@ public class CartServiceImpl implements CartService {
 
             CheckoutItem checkoutItem = new CheckoutItem();
             checkoutItem.setCheckout(checkout);
+            checkoutItem.setProductId(product.getProductId());
             checkoutItem.setProductName(product.getTitle());
             checkoutItem.setQuantity(cartQuantity.getQuantity());
             checkoutItem.setUnitPrice(product.getPrice());
@@ -321,6 +322,7 @@ public class CartServiceImpl implements CartService {
             checkout.getItems().add(checkoutItem);
 
             products.add(new CheckoutProductDto(
+                    product.getProductId(),
                     product.getTitle(),
                     cartQuantity.getQuantity(),
                     product.getPrice(),
@@ -344,7 +346,7 @@ public class CartServiceImpl implements CartService {
         checkoutDto.setCartId(cart.getCartId());
         checkoutDto.setUserId(userId);
         checkoutDto.setProducts(products);
-        checkoutDto.setTotalPrice(totalPrice);
+        checkoutDto.setTotalPriceForCheckout(totalPrice);
 //        checkoutDto.setMessage("Checkout successful. All items have been saved and removed from the cart.");
 
         return checkoutDto;
