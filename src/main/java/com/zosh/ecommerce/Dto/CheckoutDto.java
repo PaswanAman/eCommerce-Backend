@@ -12,9 +12,10 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderDto {
-    private Long orderId;
-    private Double totalAmount;
-    private LocalDateTime orderDate;
-    private List<OrderItemDto> orderItems;
+public class CheckoutDto {
+    private Long cartId;
+    private Long userId;
+    private List<CheckoutProductDto> products;
+    private double totalPrice;
+    private String message;
 }

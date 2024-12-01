@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Transactional
 @Service
@@ -32,7 +31,7 @@ public class CartServiceImpl implements CartService {
     private ProductRepo productRepo;
 
     @Autowired
-    private OrderRepo orderRepo;
+    private CheckoutRepo checkoutRepo;
 
     @Autowired
     private CartQuantityRepo cartQuantityRepo;
@@ -286,49 +285,69 @@ public class CartServiceImpl implements CartService {
 //    }
 
     @Transactional
-    public OrderDto checkout(Long userId) {
-        Cart cart = cartRepo.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Cart not found for user: " + userId));
+    public CheckoutDto checkoutCart(Long userId) {
 
-        List<CartQuantity> cartQuantities = cart.getCartQuantity();
-        if (cartQuantities.isEmpty()) {
-            throw new RuntimeException("Cart is empty. Cannot proceed with checkout.");
+        // Fetch Cart for the User
+        Cart cart = cartRepo.findByUserId(userId).orElseThrow(() ->
+                new ResourceNotFoundException("Cart not found", "UserId", userId));
+
+        if (cart.getTotalQuantity() == 0) {
+            throw new IllegalStateException("Cart is empty. Nothing to checkout.");
         }
 
-        double totalAmount = 0.0;
-        List<OrderItem> orderItems = new ArrayList<>();
+        List<CartQuantity> cartQuantities = cartQuantityRepo.findByCartId(cart.getCartId());
+        List<CheckoutProductDto> products = new ArrayList<>();
+        int totalPrice = 0;
 
-        // Process each product in the cart
+        // Create a new Checkout instance
+        CheckOut checkout = new CheckOut();
+        checkout.setUserId(userId);
+        checkout.setCheckoutDate(LocalDateTime.now());
+
         for (CartQuantity cartQuantity : cartQuantities) {
             Product product = cartQuantity.getProduct();
-            int quantity = cartQuantity.getQuantity();
-            double itemTotal = product.getPrice() * quantity;
-            totalAmount += itemTotal;
 
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProductName(product.getTitle());
-            orderItem.setPrice(product.getPrice());
-            orderItem.setQuantity(quantity);
-            orderItems.add(orderItem);
+            int productTotalPrice = (int) (product.getPrice() * cartQuantity.getQuantity());
+            totalPrice += productTotalPrice;
+
+            CheckoutItem checkoutItem = new CheckoutItem();
+            checkoutItem.setCheckout(checkout);
+            checkoutItem.setProductName(product.getTitle());
+            checkoutItem.setQuantity(cartQuantity.getQuantity());
+            checkoutItem.setUnitPrice(product.getPrice());
+            checkoutItem.setTotalPrice(productTotalPrice);
+//            checkoutItem.setImageUrl(product.get);
+
+            checkout.getItems().add(checkoutItem);
+
+            products.add(new CheckoutProductDto(
+                    product.getTitle(),
+                    cartQuantity.getQuantity(),
+                    product.getPrice(),
+                    productTotalPrice
+//                    product.getImageUrl()
+            ));
         }
 
-        // Create the Order entity
-        Order order = new Order();
-//        order.setOrderId(null);
-        order.setUser(cart.getUser());
-        order.setTotalAmount(totalAmount);
-        order.setOrderItems(orderItems);
-        order.setOrderDate(LocalDateTime.now());
+        // Save the Checkout and associated items
+        checkout.setTotalPrice(totalPrice);
+        checkoutRepo.save(checkout);
 
-        // Save the order and clear the cart
-        orderRepo.save(order);
-        cartQuantities.forEach(cartQuantity -> cartQuantityRepo.delete(cartQuantity));
-        cart.getProducts().clear();  // If using ManyToMany for products
-
+        // Delete all CartQuantities and reset the cart
+        cartQuantityRepo.deleteAllByCartId(cart.getCartId());
         cart.setTotalQuantity(0);
-        cart.setTotalPrice(0.0);
-        cartRepo.save(cart);  // Persist the empty cart
+        cart.setTotalPrice(0d);
+        cartRepo.save(cart);
 
-        return modelMapper.map(order, OrderDto.class);
+        // Create CheckoutDto response
+        CheckoutDto checkoutDto = new CheckoutDto();
+        checkoutDto.setCartId(cart.getCartId());
+        checkoutDto.setUserId(userId);
+        checkoutDto.setProducts(products);
+        checkoutDto.setTotalPrice(totalPrice);
+//        checkoutDto.setMessage("Checkout successful. All items have been saved and removed from the cart.");
+
+        return checkoutDto;
     }
+
 }

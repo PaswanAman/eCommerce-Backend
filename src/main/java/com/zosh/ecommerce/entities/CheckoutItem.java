@@ -1,9 +1,6 @@
 package com.zosh.ecommerce.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,13 +9,19 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderItem {
+public class CheckoutItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name = "checkout_id")
+    private CheckOut checkout;
+
     private String productName;
-    private Double price;
-    private Integer quantity;
+    private int quantity;
+    private double unitPrice;
+    private double totalPrice;
+//    private String imageUrl;
 }

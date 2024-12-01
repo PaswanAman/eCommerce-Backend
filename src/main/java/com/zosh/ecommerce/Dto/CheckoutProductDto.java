@@ -9,8 +9,10 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderItemDto {
+public class CheckoutProductDto {
     private String productName;
-    private Double price;
-    private Integer quantity;
+    private int quantity;
+    private double unitPrice;
+    private double totalPrice;
+//    private String imageUrl;
 }
