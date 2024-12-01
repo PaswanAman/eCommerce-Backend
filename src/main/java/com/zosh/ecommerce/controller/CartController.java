@@ -2,7 +2,8 @@ package com.zosh.ecommerce.controller;
 
 import com.zosh.ecommerce.Dto.AddProductToCartDto;
 import com.zosh.ecommerce.Dto.CartDto;
-import com.zosh.ecommerce.entities.Cart;
+import com.zosh.ecommerce.Dto.CheckoutDto;
+import com.zosh.ecommerce.Dto.RemoveProductFromCartDto;
 import com.zosh.ecommerce.exception.ResourceNotFoundException;
 import com.zosh.ecommerce.service.CartService;
 import org.slf4j.Logger;
@@ -53,14 +54,29 @@ public class CartController {
 
 
 
-    @DeleteMapping("/remove/{userId}/{productId}")
-    public ResponseEntity<?> removeProductFromCart(@PathVariable Long userId, @PathVariable Long productId) {
+    @DeleteMapping("/remove/{userId}/{productId}/{removeQuantity}")
+    public ResponseEntity<?> removeProductFromCart(@PathVariable Long userId, @PathVariable Long productId,@PathVariable Integer removeQuantity) {
         logger.info("remove product from cart api called ");
         try {
-             cartService.deleteProductFromCart(userId, productId);
-            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","delete product successful"));
+//             cartService.deleteProductFromCart(userId, productId);
+            RemoveProductFromCartDto response = cartService.removeProductFromCart(userId, productId, removeQuantity);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","remove product successful","cart",response));
         } catch (ResourceNotFoundException e) {
 
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status","error","message", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("status","error","message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/checkout/{userId}")
+    public ResponseEntity<?> checkout(@PathVariable Long userId) {
+        logger.info("Checkout API called");
+        try {
+            CheckoutDto orderDto = cartService.checkoutCart(userId);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("status","success","message","checkout successful","checkout",orderDto));
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status","error","message", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();

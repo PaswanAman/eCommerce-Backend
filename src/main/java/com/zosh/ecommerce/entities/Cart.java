@@ -28,7 +28,7 @@ public class Cart {
 
 
     @ManyToMany(fetch = FetchType.LAZY,cascade = CascadeType.ALL)
-    @JoinTable(name = "cart_products", joinColumns = @JoinColumn(name = "cart_id"), inverseJoinColumns = @JoinColumn(name = "product_id"))
+//    @JoinTable(name = "cart_products", joinColumns = @JoinColumn(name = "cart_id"), inverseJoinColumns = @JoinColumn(name = "product_id"))
     @JsonIgnore
     private List<Product> products;
 
@@ -40,15 +40,6 @@ public class Cart {
     private Integer totalQuantity;
     private Double totalPrice;
 
-//    @Override
-//    public String toString() {
-//        return "Cart{" +
-//                "cartId=" + cartId +
-//                ", totalQuantity=" + totalQuantity +
-//                ", totalPrice=" + totalPrice +
-//                // Avoid direct references to User or Product here
-//                '}';
-//    }
 
 
 
