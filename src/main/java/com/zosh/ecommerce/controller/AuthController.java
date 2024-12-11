@@ -5,14 +5,13 @@ import com.zosh.ecommerce.Dto.*;
 import com.zosh.ecommerce.config.JwtTokenHelper;
 import com.zosh.ecommerce.config.MessageConstants;
 import com.zosh.ecommerce.entities.*;
-import com.zosh.ecommerce.exception.OtpNotFoundException;
-import com.zosh.ecommerce.exception.UserNotFoundException;
 import com.zosh.ecommerce.repository.AdminRepo;
 import com.zosh.ecommerce.repository.PredictionRepo;
 import com.zosh.ecommerce.repository.StoreRepo;
 import com.zosh.ecommerce.repository.UserRepo;
 import com.zosh.ecommerce.service.AdminService;
 import com.zosh.ecommerce.service.FileService;
+import com.zosh.ecommerce.service.RefreshTokenService;
 import com.zosh.ecommerce.service.UserService;
 import com.zosh.ecommerce.serviceImpl.AdminUserDetailService;
 import com.zosh.ecommerce.serviceImpl.CustomUserDetailService;
@@ -45,13 +44,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -89,6 +84,8 @@ public class AuthController {
     private AdminRepo adminRepo;
     @Autowired
     private StoreRepo storeRepo;
+    @Autowired
+    private RefreshTokenService refreshTokenService;
 
     @Autowired
     private FileService fileService;
@@ -504,39 +501,29 @@ public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto
     @PostMapping("/seller/login")
     public ResponseEntity<?> sellerLogin(@RequestBody JwtAuthRequest request){
         logger.info("Seller  Login API called ");
-        Optional<User> user = userRepo.findByEmail(request.getEmail());
+        Optional<User> employee = userRepo.findByEmail(request.getEmail());
         UserResponse response = new UserResponse();
-        if (user.isPresent()){
-            User user1 = user.get();
-            System.out.println(user1.getEmail());
-            if (!"ROLE_SELLER".equalsIgnoreCase(user1.getRole())) {
-                logger.info("User does not have seller role");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("status", "error", "message", "Only seller are allowed to log in."));
-            }
-
-
+        if (employee.isPresent()){
+            User employee1 = employee.get();
+            System.out.println(employee1.getEmail());
             try {
                 Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
 
 
                 if (authentication.isAuthenticated()){
-
-                    response.setToken(jwtTokenHelper.generateToken(user.get().getEmail(), "seller"));
+                    RefreshToken refreshToken = refreshTokenService.createRefreshToken(employee1.getEmail());
+                    Date tokenExpiryDate = jwtTokenHelper.getExpirationDateFromToken(jwtTokenHelper.generateToken(employee1.getEmail(),"user"));
+                    long expiryInSeconds = (tokenExpiryDate.getTime() - System.currentTimeMillis()) / 1000;
+                    response.setToken(jwtTokenHelper.generateToken(employee1.getEmail(),"user"));
+                    response.setRefreshToken(refreshToken.getRefreshToken());
                     response.setMessage("Login Successful");
-                    response.setFirstName(user1.getFirstName());
-                    response.setLastName(user1.getLastName());
-                    response.setEmail(user1.getEmail());
-                    response.setUserId(user1.getId());
-                    response.setRole(user1.getRole());
-                    response.setPictureUrl(baseurl+"/api/v1/auth/picture/"+user1.getPicture());
+                    response.setUserId(employee1.getId());
+                    response.setFirstName(employee1.getFirstName());
 
-                    Optional<Store> store = storeRepo.findBySeller(user1);
-                    if (store.isPresent()){
-                        response.setStoreId(store.get().getId());
-                    } else {
-                        response.setStoreId(null);
-                    }
+                    response.setLastName(employee1.getLastName());
+                    response.setEmail(employee1.getEmail());
+                    response.setRole(employee1.getRole());
+                    response.setTokenExpiryTime(String.valueOf(expiryInSeconds));
                     logger.info("Login Successful");
                     return new ResponseEntity<>(response, HttpStatus.OK);
                 } else {
@@ -552,7 +539,7 @@ public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto
         } else {
             logger.info("Employee not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("status", "error", "message", "User not found"));
+                    .body(Map.of("status", "error", "message", "Employee not found"));
         }
 
     }
@@ -632,72 +619,84 @@ public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto
 //    }
 @PostMapping("/buyer/login")
 public ResponseEntity<?> buyerLogin(
-        @ModelAttribute JwtAuthRequest request,
-        @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
+        @ModelAttribute JwtAuthRequest request
+         ) {
 
     logger.info("Buyer Login API called");
-    if (imageFile != null && !imageFile.isEmpty()) {
+//    if (imageFile != null && !imageFile.isEmpty()) {
+//        try {
+//            String matchedEmail = sendImageToPythonApiLogin(imageFile);
+//
+//            if (matchedEmail != null) {
+//                Optional<User> user = userRepo.findByEmail(matchedEmail);
+//                if (user.isPresent()) {
+//                    return generateLoginResponse(user.get());
+//                } else {
+//
+//                    logger.warn("No user found for matched_email: " + matchedEmail);
+//                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//                            .body(Map.of("status", "error", "message", "User not found for matched image"));
+//                }
+//            } else {
+//                logger.warn("Face not recognized in the provided image");
+//                String fileName = imageFile.getOriginalFilename();
+//                Predictions predictions = predictionRepo.findByFilePath(fileName);
+//                predictionRepo.deleteById(predictions.getId());
+//
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                        .body(Map.of("status", "error", "message", "Face not recognized. Please try again."));
+//            }
+//        } catch (Exception e) {
+//            logger.error("Error during image-based login: ", e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Map.of("status", "error", "message", "Error processing image login"));
+//        }
+//    }
+//
+//    if (request.getEmail() == null || request.getPassword() == null) {
+//        return ResponseEntity.badRequest()
+//                .body(Map.of("status", "error", "message", "Email and password are required for login"));
+//    }
+
+    Optional<User> employee = userRepo.findByEmail(request.getEmail());
+    UserResponse response = new UserResponse();
+    if (employee.isPresent()){
+        User employee1 = employee.get();
+        System.out.println(employee1.getEmail());
         try {
-            String matchedEmail = sendImageToPythonApiLogin(imageFile);
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
 
-            if (matchedEmail != null) {
-                Optional<User> user = userRepo.findByEmail(matchedEmail);
-                if (user.isPresent()) {
-                    return generateLoginResponse(user.get());
-                } else {
 
-                    logger.warn("No user found for matched_email: " + matchedEmail);
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body(Map.of("status", "error", "message", "User not found for matched image"));
-                }
+            if (authentication.isAuthenticated()){
+                RefreshToken refreshToken = refreshTokenService.createRefreshToken(employee1.getEmail());
+                Date tokenExpiryDate = jwtTokenHelper.getExpirationDateFromToken(jwtTokenHelper.generateToken(employee1.getEmail(),"user"));
+                long expiryInSeconds = (tokenExpiryDate.getTime() - System.currentTimeMillis()) / 1000;
+                response.setToken(jwtTokenHelper.generateToken(employee1.getEmail(),"user"));
+                response.setRefreshToken(refreshToken.getRefreshToken());
+                response.setMessage("Login Successful");
+                response.setUserId(employee1.getId());
+                response.setFirstName(employee1.getFirstName());
+
+                    response.setLastName(employee1.getLastName());
+                response.setEmail(employee1.getEmail());
+                response.setRole(employee1.getRole());
+                response.setTokenExpiryTime(String.valueOf(expiryInSeconds));
+                logger.info("Login Successful");
+                return new ResponseEntity<>(response, HttpStatus.OK);
             } else {
-                logger.warn("Face not recognized in the provided image");
-                String fileName = imageFile.getOriginalFilename();
-                Predictions predictions = predictionRepo.findByFilePath(fileName);
-                predictionRepo.deleteById(predictions.getId());
-
+                logger.info("Invalid email or password");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Face not recognized. Please try again."));
+                        .body(Map.of("status", "error", "message","Invalid Email or Passowrd. Please try again."));
             }
-        } catch (Exception e) {
-            logger.error("Error during image-based login: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", "Error processing image login"));
-        }
-    }
-
-    if (request.getEmail() == null || request.getPassword() == null) {
-        return ResponseEntity.badRequest()
-                .body(Map.of("status", "error", "message", "Email and password are required for login"));
-    }
-
-    Optional<User> user = userRepo.findByEmail(request.getEmail());
-    if (user.isPresent()) {
-        User user1 = user.get();
-
-        if (!"ROLE_BUYER".equalsIgnoreCase(user1.getRole())) {
-            logger.info("User does not have buyer role");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("status", "error", "message", "Only buyers are allowed to log in."));
-        }
-
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-
-            if (authentication.isAuthenticated()) {
-                return generateLoginResponse(user1);
-            } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Invalid email or password"));
-            }
-        } catch (AuthenticationException e) {
+        }  catch (AuthenticationException e) {
+            logger.info("Invalid email or Password!");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("status", "error", "message", "Invalid email or password"));
+                    .body(Map.of("status", "error", "message", "Invalid email or password. Please try again."));
         }
     } else {
+        logger.info("Employee not found");
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("status", "error", "message", "User not found"));
+                .body(Map.of("status", "error", "message", "Employee not found"));
     }
 }
 
@@ -759,9 +758,10 @@ public ResponseEntity<?> buyerLogin(
 
 
 
-    private ResponseEntity<UserResponse> generateLoginResponse(User user) {
+    private ResponseEntity<UserResponse> generateLoginResponse(User user, RefreshToken refreshToken) {
         UserResponse response = new UserResponse();
         response.setToken(jwtTokenHelper.generateToken(user.getEmail(), "buyer"));
+        response.setRefreshToken(String.valueOf(refreshToken));
         response.setMessage("Login Successful");
         response.setFirstName(user.getFirstName());
         response.setLastName(user.getLastName());
@@ -841,6 +841,25 @@ public ResponseEntity<?> buyerLogin(
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/refresh-token")
+    public UserResponse refreshToken(@RequestBody RefreshTokenRequest request){
+        RefreshToken refreshToken = refreshTokenService.verifyRefreshToken(request.getRefreshToken());
+        User employee =  refreshToken.getUser();
+        String token = this.jwtTokenHelper.generateToken(employee.getEmail(),"employee");
+        Date tokenExpiryDate = jwtTokenHelper.getExpirationDateFromToken(token);
+
+        return UserResponse.builder().refreshToken(refreshToken.getRefreshToken())
+                .token(token)
+                .message("New Jwt Token")
+                .email(employee.getEmail())
+                .firstName(employee.getFirstName())
+                .lastName(employee.getLastName())
+                .role(employee.getRole())
+                .tokenExpiryTime(tokenExpiryDate.toString())
+                .build();
+
     }
 
     private void authenticate(String email, String password) {

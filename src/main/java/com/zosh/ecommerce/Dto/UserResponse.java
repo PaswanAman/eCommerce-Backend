@@ -8,12 +8,15 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
+@Builder
 
 public class UserResponse {
     private String token;
+    private String refreshToken;
     private String email;
     private String message;
     private Long userId;
+    private String tokenExpiryTime;
     private String firstName;
     private String lastName;
     private String pictureUrl;
