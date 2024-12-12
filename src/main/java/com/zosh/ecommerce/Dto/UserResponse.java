@@ -3,6 +3,8 @@ package com.zosh.ecommerce.Dto;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -16,7 +18,8 @@ public class UserResponse {
     private String email;
     private String message;
     private Long userId;
-    private String tokenExpiryTime;
+    private Long tokenExpiryTime;
+    private Long refreshTokenExpiryTime;
     private String firstName;
     private String lastName;
     private String pictureUrl;

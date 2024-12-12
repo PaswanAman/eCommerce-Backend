@@ -5,6 +5,7 @@ import com.zosh.ecommerce.Dto.*;
 import com.zosh.ecommerce.config.JwtTokenHelper;
 import com.zosh.ecommerce.config.MessageConstants;
 import com.zosh.ecommerce.entities.*;
+import com.zosh.ecommerce.exception.ResourceNotFoundException;
 import com.zosh.ecommerce.repository.AdminRepo;
 import com.zosh.ecommerce.repository.PredictionRepo;
 import com.zosh.ecommerce.repository.StoreRepo;
@@ -46,6 +47,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -514,8 +517,10 @@ public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto
                     RefreshToken refreshToken = refreshTokenService.createRefreshToken(employee1.getEmail());
                     Date tokenExpiryDate = jwtTokenHelper.getExpirationDateFromToken(jwtTokenHelper.generateToken(employee1.getEmail(),"user"));
                     long expiryInSeconds = (tokenExpiryDate.getTime() - System.currentTimeMillis()) / 1000;
+                    long refreshExpiryInSeconds = Duration.between(Instant.now(), refreshToken.getExpiry()).getSeconds();
                     response.setToken(jwtTokenHelper.generateToken(employee1.getEmail(),"user"));
                     response.setRefreshToken(refreshToken.getRefreshToken());
+                    response.setRefreshTokenExpiryTime(refreshExpiryInSeconds);
                     response.setMessage("Login Successful");
                     response.setUserId(employee1.getId());
                     response.setFirstName(employee1.getFirstName());
@@ -523,7 +528,7 @@ public ResponseEntity<?> registerNewBuyer(@Valid @ModelAttribute UserDto userDto
                     response.setLastName(employee1.getLastName());
                     response.setEmail(employee1.getEmail());
                     response.setRole(employee1.getRole());
-                    response.setTokenExpiryTime(String.valueOf(expiryInSeconds));
+                    response.setTokenExpiryTime(expiryInSeconds);
                     logger.info("Login Successful");
                     return new ResponseEntity<>(response, HttpStatus.OK);
                 } else {
@@ -671,8 +676,10 @@ public ResponseEntity<?> buyerLogin(
                 RefreshToken refreshToken = refreshTokenService.createRefreshToken(employee1.getEmail());
                 Date tokenExpiryDate = jwtTokenHelper.getExpirationDateFromToken(jwtTokenHelper.generateToken(employee1.getEmail(),"user"));
                 long expiryInSeconds = (tokenExpiryDate.getTime() - System.currentTimeMillis()) / 1000;
+                long refreshExpiryInSeconds = Duration.between(Instant.now(), refreshToken.getExpiry()).getSeconds();
                 response.setToken(jwtTokenHelper.generateToken(employee1.getEmail(),"user"));
                 response.setRefreshToken(refreshToken.getRefreshToken());
+                response.setRefreshTokenExpiryTime(refreshExpiryInSeconds);
                 response.setMessage("Login Successful");
                 response.setUserId(employee1.getId());
                 response.setFirstName(employee1.getFirstName());
@@ -680,7 +687,7 @@ public ResponseEntity<?> buyerLogin(
                     response.setLastName(employee1.getLastName());
                 response.setEmail(employee1.getEmail());
                 response.setRole(employee1.getRole());
-                response.setTokenExpiryTime(String.valueOf(expiryInSeconds));
+                response.setTokenExpiryTime(expiryInSeconds);
                 logger.info("Login Successful");
                 return new ResponseEntity<>(response, HttpStatus.OK);
             } else {
@@ -844,21 +851,67 @@ public ResponseEntity<?> buyerLogin(
     }
 
     @PostMapping("/refresh-token")
-    public UserResponse refreshToken(@RequestBody RefreshTokenRequest request){
-        RefreshToken refreshToken = refreshTokenService.verifyRefreshToken(request.getRefreshToken());
-        User employee =  refreshToken.getUser();
-        String token = this.jwtTokenHelper.generateToken(employee.getEmail(),"employee");
-        Date tokenExpiryDate = jwtTokenHelper.getExpirationDateFromToken(token);
+    public ResponseEntity<UserResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+        logger.info("refresh token api called");
+        try {
+            // Step 1: Verify the refresh token
+            RefreshToken refreshToken = refreshTokenService.verifyRefreshToken(request.getRefreshToken());
 
-        return UserResponse.builder().refreshToken(refreshToken.getRefreshToken())
-                .token(token)
-                .message("New Jwt Token")
-                .email(employee.getEmail())
-                .firstName(employee.getFirstName())
-                .lastName(employee.getLastName())
-                .role(employee.getRole())
-                .tokenExpiryTime(tokenExpiryDate.toString())
-                .build();
+//            if (refreshToken == null) {
+//                throw new InvalidRefreshTokenException("Invalid or expired refresh token.");
+//            }
+
+            // Step 2: Get the user associated with the refresh token
+            User employee = refreshToken.getUser();
+//            if (employee == null) {
+//                throw new ResourceNotFoundException("User associated with this token does not exist.");
+//            }
+
+            // Step 3: Generate a new JWT token
+            String token = this.jwtTokenHelper.generateToken(employee.getEmail(), "employee");
+
+            // Step 4: Calculate token expiry time
+            Date tokenExpiryDate = jwtTokenHelper.getExpirationDateFromToken(token);
+            long expiryInSeconds = (tokenExpiryDate.getTime() - System.currentTimeMillis()) / 1000;
+            long refreshExpiryInSeconds = Duration.between(Instant.now(), refreshToken.getExpiry()).getSeconds();
+
+            // Step 5: Build and return the response
+            UserResponse response = UserResponse.builder()
+                    .refreshToken(refreshToken.getRefreshToken())
+                    .token(token)
+                    .message("New JWT token generated successfully.")
+                    .email(employee.getEmail())
+                    .userId(employee.getId())
+                    .firstName(employee.getFirstName())
+                    .lastName(employee.getLastName())
+                    .role(employee.getRole())
+                    .tokenExpiryTime(expiryInSeconds)
+                    .refreshTokenExpiryTime(refreshExpiryInSeconds)
+                    .build();
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            // Handle invalid or expired refresh token
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(UserResponse.builder()
+                            .message(e.getMessage())
+                            .build());
+        } catch (ResourceNotFoundException e) {
+            // Handle case where the user is not found
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(UserResponse.builder()
+                            .message(e.getMessage())
+                            .build());
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Handle other unexpected exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(UserResponse.builder()
+                            .message("An unexpected error occurred: " + e.getMessage())
+                            .build());
+        }
+
 
     }
 

@@ -89,6 +89,7 @@ public class SecurityConfig extends WebMvcAutoConfiguration {
                 .cors(cors -> cors.disable())
                 .authorizeHttpRequests(auth -> auth.requestMatchers(
                                 "/api/v1/auth/buyer/**",
+                                        "/api/v1/auth/**",
                                         "/api/v1/auth/picture/**",
                                         "/api/v1/auth/admin/**",
                                         "/api/v1/user/non-expired",

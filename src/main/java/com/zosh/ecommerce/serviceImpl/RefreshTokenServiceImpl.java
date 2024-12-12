@@ -13,10 +13,7 @@ import java.util.UUID;
 
 @Service
 public class RefreshTokenServiceImpl implements RefreshTokenService {
-    /**
-     * @param userName
-     * @return
-     */
+
 
     @Autowired
     private UserRepo userRepo;
@@ -27,14 +24,17 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         User user = userRepo.findByEmail(userName).get();
         RefreshToken refreshToken = user.getRefreshToken();
 
+        Instant expiryTime = Instant.now().plusMillis(5 * 60 * 60 * 10000);
+
         if (refreshToken == null){
             refreshToken = RefreshToken.builder()
                     .refreshToken(UUID.randomUUID().toString())
-                    .expiry(Instant.now().plusMillis(5*60*60*10000))
+                    .expiry(expiryTime)
                     .user(userRepo.findByEmail(userName).get())
                     .build();
         } else {
-            refreshToken.setExpiry(Instant.now().plusMillis(5*60*60*10000));
+//            refreshToken.setExpiry(Instant.now().plusMillis(5*60*60*10000));
+            refreshToken.setExpiry(expiryTime);
         }
 
         user.setRefreshToken(refreshToken);
@@ -42,10 +42,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         return refreshToken;
     }
 
-    /**
-     * @param refreshToken
-     * @return
-     */
     @Override
     public RefreshToken verifyRefreshToken(String refreshToken) {
         RefreshToken refreshTokenOb = refreshTokenRepo.findByRefreshToken(refreshToken).orElseThrow();
