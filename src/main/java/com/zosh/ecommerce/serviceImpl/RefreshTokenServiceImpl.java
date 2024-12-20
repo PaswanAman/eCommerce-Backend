@@ -24,7 +24,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         User user = userRepo.findByEmail(userName).get();
         RefreshToken refreshToken = user.getRefreshToken();
 
-        Instant expiryTime = Instant.now().plusMillis(5 * 60 * 60 * 10000);
+        Instant expiryTime = Instant.now().plusMillis(5 * 24 * 60 * 60 * 1000);
 
         if (refreshToken == null){
             refreshToken = RefreshToken.builder()
